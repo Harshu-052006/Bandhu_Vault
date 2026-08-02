@@ -1,0 +1,86 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+
+  updates  ProjectUpdate[]
+  files    ProjectFile[]
+  comments Comment[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  updates ProjectUpdate[]
+  files   ProjectFile[]
+
+  @@index([createdAt])
+}
+
+model ProjectUpdate {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  projectId String
+  authorId  String
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id])
+  
+  files    ProjectFile[]
+  comments Comment[]
+
+  @@index([projectId, createdAt(sort: Desc)])
+}
+
+model ProjectFile {
+  id        String   @id @default(cuid())
+  filename  String
+  fileUrl   String
+  r2Key     String   @unique
+  mimeType  String
+  fileSize  Int
+  createdAt DateTime @default(now())
+  
+  projectId  String
+  uploaderId String
+  updateId   String?
+  
+  project  Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader User           @relation(fields: [uploaderId], references: [id])
+  update   ProjectUpdate? @relation(fields: [updateId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([updateId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+  
+  updateId String
+  authorId String
+  
+  update ProjectUpdate @relation(fields: [updateId], references: [id], onDelete: Cascade)
+  author User          @relation(fields: [authorId], references: [id])
+
+  @@index([updateId, createdAt(sort: Asc)])
+}
