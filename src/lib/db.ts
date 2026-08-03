@@ -4,7 +4,11 @@ import { PrismaPg } from '@prisma/adapter-pg'
 
 const prismaClientSingleton = () => {
   const connectionString = `${process.env.DATABASE_URL}`
-  const pool = new Pool({ connectionString })
+  // Neon requires SSL, without it pg pool drops connections resulting in timeouts.
+  const pool = new Pool({ 
+    connectionString,
+    ssl: { rejectUnauthorized: false }
+  })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }
