@@ -28,7 +28,6 @@ export async function createProject(formData: FormData) {
   })
   
   revalidatePath('/')
-  return project
 }
 
 export async function getProject(projectId: string) {
