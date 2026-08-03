@@ -35,7 +35,7 @@ export default async function DashboardPage() {
             <p className="text-sm text-neutral-500 mt-1 max-w-sm">Create your first project workspace to start sharing updates and media with your team.</p>
           </div>
         ) : (
-          projects.map((project) => (
+          projects.map((project: any) => (
             <Link 
               key={project.id} 
               href={`/projects/${project.id}`}
