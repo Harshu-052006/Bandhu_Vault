@@ -3,6 +3,8 @@ import { HardDrive, Trash2 } from 'lucide-react'
 import { deleteFile } from '@/lib/actions/file-actions'
 import { revalidatePath } from 'next/cache'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminPage() {
   const files = await prisma.projectFile.findMany({
     orderBy: { fileSize: 'desc' },
