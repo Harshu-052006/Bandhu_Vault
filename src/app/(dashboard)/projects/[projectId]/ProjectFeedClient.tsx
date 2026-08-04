@@ -3,14 +3,17 @@
 import React, { useState } from 'react'
 import FileUploadZone from '@/components/features/file-upload-zone'
 import UpdateCard from '@/components/features/update-card'
-import { postUpdate } from '@/lib/actions/project-actions'
-import { Paperclip, Send, Plus, X } from 'lucide-react'
+import { postUpdate, updateProjectDescription } from '@/lib/actions/project-actions'
+import { Paperclip, Send, Plus, X, Edit2, Check } from 'lucide-react'
 
 export default function ProjectFeedClient({ project }: { project: any }) {
   const [showUpload, setShowUpload] = useState(false)
   const [showPostUpdateForm, setShowPostUpdateForm] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditingDesc, setIsEditingDesc] = useState(false)
+  const [editDescValue, setEditDescValue] = useState(project.description || "")
+  const [isSavingDesc, setIsSavingDesc] = useState(false)
 
   const handleUploadSuccess = (fileId: string) => {
     setAttachedFiles(prev => [...prev, fileId])
@@ -132,9 +135,62 @@ export default function ProjectFeedClient({ project }: { project: any }) {
       </div>
 
       <div className="lg:col-span-1 space-y-6">
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6">
-          <h3 className="text-lg font-semibold text-white mb-2">About Project</h3>
-          <p className="text-sm text-neutral-400">{project.description || "No description provided."}</p>
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 relative group">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-white">About Project</h3>
+            {!isEditingDesc && (
+              <button 
+                onClick={() => {
+                  setEditDescValue(project.description || "")
+                  setIsEditingDesc(true)
+                }}
+                className="text-neutral-500 hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-all"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          
+          {isEditingDesc ? (
+            <div className="space-y-3 mt-3">
+              <textarea 
+                value={editDescValue}
+                onChange={(e) => setEditDescValue(e.target.value)}
+                placeholder="Add a project description..." 
+                rows={3}
+                className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+              />
+              <div className="flex justify-end gap-2">
+                <button 
+                  onClick={() => setIsEditingDesc(false)}
+                  disabled={isSavingDesc}
+                  className="px-3 py-1.5 text-xs font-medium text-neutral-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={async () => {
+                    setIsSavingDesc(true)
+                    try {
+                      await updateProjectDescription(project.id, editDescValue)
+                      setIsEditingDesc(false)
+                    } catch (e) {
+                      console.error(e)
+                      alert("Failed to update description")
+                    } finally {
+                      setIsSavingDesc(false)
+                    }
+                  }}
+                  disabled={isSavingDesc}
+                  className="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-indigo-500 disabled:opacity-50"
+                >
+                  {isSavingDesc ? "Saving..." : <><Check className="h-3 w-3" /> Save</>}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-neutral-400 whitespace-pre-wrap">{project.description || "No description provided."}</p>
+          )}
         </div>
         
         <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6">

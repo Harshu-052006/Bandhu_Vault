@@ -111,3 +111,15 @@ export async function postComment(updateId: string, formData: FormData) {
 
   revalidatePath('/')
 }
+
+export async function updateProjectDescription(projectId: string, description: string) {
+  const { userId } = await auth()
+  if (!userId) throw new Error("Unauthorized")
+    
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { description }
+  })
+  
+  revalidatePath(`/projects/${projectId}`)
+}

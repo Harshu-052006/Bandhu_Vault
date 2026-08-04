@@ -1,3 +1,7 @@
+# Bandhu Vault Introduction
+
+Bandhu Vault is a secure team collaboration platform designed to streamline how project updates and media are shared. Built as a Progressive Web App (PWA), it offers a native-like experience on any device. Users can create dedicated project workspaces, post rich-text updates, and leverage direct-to-cloud presigned URLs to bypass server limits for lightning-fast, heavy media uploads.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
