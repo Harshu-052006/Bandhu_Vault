@@ -4,10 +4,11 @@ import React, { useState } from 'react'
 import FileUploadZone from '@/components/features/file-upload-zone'
 import UpdateCard from '@/components/features/update-card'
 import { postUpdate } from '@/lib/actions/project-actions'
-import { Paperclip, Send } from 'lucide-react'
+import { Paperclip, Send, Plus, X } from 'lucide-react'
 
 export default function ProjectFeedClient({ project }: { project: any }) {
   const [showUpload, setShowUpload] = useState(false)
+  const [showPostUpdateForm, setShowPostUpdateForm] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -36,60 +37,86 @@ export default function ProjectFeedClient({ project }: { project: any }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
       <div className="lg:col-span-2 space-y-6">
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 shadow-xl backdrop-blur-sm">
-          <h2 className="text-lg font-semibold text-white mb-4">Post an Update</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input 
-              name="title" 
-              placeholder="Update Title" 
-              required
-              className="w-full rounded-xl border border-neutral-800 bg-neutral-950/50 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-            <textarea 
-              name="content" 
-              placeholder="What's new?" 
-              rows={4}
-              required
-              className="w-full rounded-xl border border-neutral-800 bg-neutral-950/50 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
-            />
-            
-            {attachedFiles.length > 0 && (
-              <div className="text-sm text-indigo-400 font-medium">
-                {attachedFiles.length} file(s) attached
-              </div>
-            )}
+        
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-white">Project Updates</h2>
+          <button 
+            onClick={() => setShowPostUpdateForm(true)}
+            className="flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-500 hover:scale-105 active:scale-95"
+          >
+            <Plus className="h-5 w-5" />
+            New Update
+          </button>
+        </div>
 
-            {showUpload && (
-              <div className="mt-4">
-                <FileUploadZone projectId={project.id} onUploadSuccess={handleUploadSuccess} />
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-2">
+        {showPostUpdateForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-900 p-6 shadow-2xl relative">
               <button 
-                type="button" 
-                onClick={() => setShowUpload(!showUpload)}
-                className="flex items-center text-sm font-medium text-neutral-400 hover:text-indigo-400 transition-colors"
+                onClick={() => setShowPostUpdateForm(false)}
+                className="absolute top-4 right-4 text-neutral-400 hover:text-white"
               >
-                <Paperclip className="mr-2 h-4 w-4" />
-                Attach Media
+                <X className="h-6 w-6" />
               </button>
               
-              <button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="flex items-center rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-500 disabled:opacity-50"
-              >
-                {isSubmitting ? 'Posting...' : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Post Update
-                  </>
+              <h2 className="text-xl font-bold text-white mb-6">Post an Update</h2>
+              <form onSubmit={async (e) => {
+                await handleSubmit(e)
+                setShowPostUpdateForm(false)
+              }} className="space-y-4">
+                <input 
+                  name="title" 
+                  placeholder="Update Title" 
+                  required
+                  className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                <textarea 
+                  name="content" 
+                  placeholder="What's new?" 
+                  rows={4}
+                  required
+                  className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                />
+                
+                {attachedFiles.length > 0 && (
+                  <div className="text-sm text-indigo-400 font-medium bg-indigo-500/10 p-3 rounded-lg border border-indigo-500/20">
+                    {attachedFiles.length} file(s) attached
+                  </div>
                 )}
-              </button>
+
+                {showUpload && (
+                  <div className="mt-4">
+                    <FileUploadZone projectId={project.id} onUploadSuccess={handleUploadSuccess} />
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-4 border-t border-neutral-800">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowUpload(!showUpload)}
+                    className="flex items-center text-sm font-medium text-neutral-400 hover:text-indigo-400 transition-colors bg-neutral-800 px-4 py-2 rounded-lg"
+                  >
+                    <Paperclip className="mr-2 h-4 w-4" />
+                    Attach Media
+                  </button>
+                  
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="flex items-center rounded-xl bg-indigo-600 px-8 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-500 disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Posting...' : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Post Update
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
+          </div>
+        )}
 
         <div className="space-y-6 mt-8 w-full">
           {project.updates.map((update: any) => (

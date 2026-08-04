@@ -29,3 +29,28 @@ export async function saveFileMetadata(data: {
 
   return file
 }
+export async function deleteFile(fileId: string) {
+  const { userId } = await auth()
+  if (!userId) throw new Error("Unauthorized")
+  
+  const file = await prisma.projectFile.findUnique({ where: { id: fileId } })
+  if (!file) throw new Error("File not found")
+
+  // Using dynamic import so aws-sdk doesn't bloat client components if accidentally imported
+  const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
+  const { r2 } = await import('@/lib/r2')
+
+  try {
+    await r2.send(new DeleteObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME || '',
+      Key: file.r2Key
+    }))
+  } catch (err) {
+    console.error("Failed to delete from R2:", err)
+    // Still proceed to delete from DB to prevent hanging records if R2 is out of sync
+  }
+
+  await prisma.projectFile.delete({
+    where: { id: fileId }
+  })
+}

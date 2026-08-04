@@ -1,6 +1,26 @@
 import { UserButton } from "@clerk/nextjs"
 import Link from "next/link"
 import { Layers } from "lucide-react"
+import prisma from "@/lib/db"
+
+async function StorageAlert() {
+  const result = await prisma.projectFile.aggregate({
+    _sum: { fileSize: true }
+  });
+  const totalBytes = result._sum.fileSize || 0;
+  const gbUsed = totalBytes / (1024 * 1024 * 1024);
+  const maxGb = 10;
+  const percentage = (gbUsed / maxGb) * 100;
+
+  if (percentage < 80) return null;
+
+  return (
+    <div className={`w-full text-center py-2 px-4 text-sm font-medium ${percentage >= 90 ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}>
+      ⚠️ Storage Alert: You have used {gbUsed.toFixed(2)}GB ({percentage.toFixed(1)}%) of your {maxGb}GB limit.
+      <Link href="/admin" className="ml-2 underline hover:text-white transition-colors">Manage Storage</Link>
+    </div>
+  )
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,10 +34,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="text-xl font-bold tracking-tight bg-gradient-to-br from-white to-neutral-400 bg-clip-text text-transparent">Bandhu Vault</span>
           </Link>
           <div className="flex items-center gap-4">
+            <Link href="/admin" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">
+              Admin
+            </Link>
             <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 ring-2 ring-neutral-800" } }} />
           </div>
         </div>
       </header>
+      <StorageAlert />
       <main className="flex-1 flex w-full">
         {children}
       </main>

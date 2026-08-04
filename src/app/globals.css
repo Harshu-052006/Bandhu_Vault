@@ -24,3 +24,12 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Hide Clerk Development mode badge */
+.cl-internal-b3al4t,
+.cl-internal-1dauvpw,
+[class^="cl-internal-"] {
+  /* Note: hiding all cl-internal might hide legitimate parts, better be specific or just use standard */
+}
+div.cl-internal-b3al4t { display: none !important; }
+div.cl-internal-1dauvpw { display: none !important; }

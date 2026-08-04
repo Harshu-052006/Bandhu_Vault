@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react'
 import { UploadCloud } from 'lucide-react'
 import { saveFileMetadata } from '@/lib/actions/file-actions'
+import imageCompression from 'browser-image-compression'
 
 export default function FileUploadZone({ projectId, onUploadSuccess }: { projectId: string, onUploadSuccess: (fileId: string) => void }) {
   const [isDragging, setIsDragging] = useState(false)
@@ -19,36 +20,63 @@ export default function FileUploadZone({ projectId, onUploadSuccess }: { project
   const uploadFile = async (file: File) => {
     try {
       setUploading(true)
+      setProgress(5)
+      
+      let finalFile = file;
+      // Compress if it's an image
+      if (file.type.startsWith('image/')) {
+        const options = {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true
+        }
+        finalFile = await imageCompression(file, options)
+      }
       setProgress(10)
       
       const res = await fetch('/api/upload/presigned', {
         method: 'POST',
         body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
+          filename: finalFile.name,
+          contentType: finalFile.type,
           projectId
         })
       })
       
       if (!res.ok) throw new Error('Failed to get presigned URL')
       const { presignedUrl, key, fileUrl } = await res.json()
-      setProgress(40)
       
-      const uploadRes = await fetch(presignedUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type }
+      // Use XHR for real-time upload progress
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('PUT', presignedUrl, true)
+        xhr.setRequestHeader('Content-Type', finalFile.type)
+        
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            // Reserve last 10% for DB saving
+            const percentComplete = 10 + Math.round((e.loaded / e.total) * 80)
+            setProgress(percentComplete)
+          }
+        }
+        
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response)
+          else reject(new Error('Failed to upload to R2'))
+        }
+        
+        xhr.onerror = () => reject(new Error('Network Error'))
+        xhr.send(finalFile)
       })
       
-      if (!uploadRes.ok) throw new Error('Failed to upload to R2')
-      setProgress(80)
+      setProgress(95)
       
       const dbFile = await saveFileMetadata({
-        filename: file.name,
+        filename: finalFile.name,
         fileUrl,
         r2Key: key,
-        mimeType: file.type,
-        fileSize: file.size,
+        mimeType: finalFile.type,
+        fileSize: finalFile.size,
         projectId
       })
       
@@ -58,8 +86,10 @@ export default function FileUploadZone({ projectId, onUploadSuccess }: { project
       console.error(error)
       alert("Failed to upload file")
     } finally {
-      setUploading(false)
-      setProgress(0)
+      setTimeout(() => {
+        setUploading(false)
+        setProgress(0)
+      }, 1000)
     }
   }
 
@@ -95,8 +125,11 @@ export default function FileUploadZone({ projectId, onUploadSuccess }: { project
           <p className="text-sm text-neutral-500">or click to browse from your device</p>
         </div>
         {uploading && (
-          <div className="w-full max-w-xs overflow-hidden rounded-full bg-neutral-800">
-            <div className="h-2 bg-indigo-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+          <div className="w-full max-w-xs overflow-hidden rounded-full bg-neutral-800 flex items-center relative h-4">
+            <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow-md">
+              {progress}%
+            </span>
           </div>
         )}
       </div>

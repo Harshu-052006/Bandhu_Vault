@@ -13,15 +13,21 @@ export default async function DashboardPage() {
           <h1 className="text-4xl font-bold tracking-tight mb-2">Projects</h1>
           <p className="text-neutral-400">Manage and view updates across all team workspaces.</p>
         </div>
-        <form action={createProject} className="flex gap-2 w-full md:w-auto">
+        <form action={createProject} className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-start sm:items-center">
           <input 
             type="text" 
             name="name" 
             placeholder="New project name..." 
             required
-            className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-900/50 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
+            className="flex h-10 w-full sm:w-48 rounded-md border border-neutral-800 bg-neutral-900/50 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
           />
-          <Button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 border-0">
+          <input 
+            type="text" 
+            name="description" 
+            placeholder="Description (optional)" 
+            className="flex h-10 w-full sm:w-64 rounded-md border border-neutral-800 bg-neutral-900/50 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
+          />
+          <Button type="submit" className="bg-indigo-600 w-full sm:w-auto hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 border-0">
             <Plus className="mr-2 h-4 w-4" /> Create
           </Button>
         </form>
