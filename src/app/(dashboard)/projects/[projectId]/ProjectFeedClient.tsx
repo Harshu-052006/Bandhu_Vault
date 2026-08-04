@@ -3,7 +3,8 @@
 import React, { useState } from 'react'
 import FileUploadZone from '@/components/features/file-upload-zone'
 import UpdateCard from '@/components/features/update-card'
-import { postUpdate, updateProjectDescription } from '@/lib/actions/project-actions'
+import { postUpdate, updateProjectDescription, deleteProject } from '@/lib/actions/project-actions'
+import { useRouter } from 'next/navigation'
 import { Paperclip, Send, Plus, X, Edit2, Check } from 'lucide-react'
 
 export default function ProjectFeedClient({ project }: { project: any }) {
@@ -14,6 +15,22 @@ export default function ProjectFeedClient({ project }: { project: any }) {
   const [isEditingDesc, setIsEditingDesc] = useState(false)
   const [editDescValue, setEditDescValue] = useState(project.description || "")
   const [isSavingDesc, setIsSavingDesc] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const router = useRouter()
+
+  const handleDeleteProject = async () => {
+    if (confirm("Are you sure you want to delete this project? This action cannot be undone.")) {
+      setIsDeleting(true)
+      try {
+        await deleteProject(project.id)
+        router.push('/projects')
+      } catch (e) {
+        console.error(e)
+        alert("Failed to delete project")
+        setIsDeleting(false)
+      }
+    }
+  }
 
   const handleUploadSuccess = (fileId: string) => {
     setAttachedFiles(prev => [...prev, fileId])
@@ -212,6 +229,18 @@ export default function ProjectFeedClient({ project }: { project: any }) {
               ))}
             </div>
           )}
+        </div>
+
+        <div className="rounded-2xl border border-red-900/50 bg-red-950/20 p-6">
+          <h3 className="text-lg font-semibold text-red-500 mb-2">Danger Zone</h3>
+          <p className="text-sm text-neutral-400 mb-4">Once you delete a project, there is no going back. Please be certain.</p>
+          <button 
+            onClick={handleDeleteProject}
+            disabled={isDeleting}
+            className="w-full flex justify-center items-center rounded-xl bg-red-600/10 border border-red-900/50 px-4 py-2 text-sm font-semibold text-red-500 hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
+          >
+            {isDeleting ? 'Deleting...' : 'Delete Project'}
+          </button>
         </div>
       </div>
     </div>

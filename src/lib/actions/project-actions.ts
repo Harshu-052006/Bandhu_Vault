@@ -123,3 +123,32 @@ export async function updateProjectDescription(projectId: string, description: s
   
   revalidatePath(`/projects/${projectId}`)
 }
+
+export async function deleteProject(projectId: string) {
+  const { userId } = await auth()
+  if (!userId) throw new Error("Unauthorized")
+
+  const files = await prisma.projectFile.findMany({ where: { projectId } })
+
+  if (files.length > 0) {
+    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
+    const { r2 } = await import('@/lib/r2')
+    
+    for (const file of files) {
+      try {
+        await r2.send(new DeleteObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME || '',
+          Key: file.r2Key
+        }))
+      } catch (err) {
+        console.error("Failed to delete from R2:", err)
+      }
+    }
+  }
+
+  await prisma.project.delete({
+    where: { id: projectId }
+  })
+  
+  revalidatePath('/projects')
+}
