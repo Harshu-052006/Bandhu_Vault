@@ -38,7 +38,7 @@ export default function FileUploadZone({ projectId, onUploadSuccess }: { project
         method: 'POST',
         body: JSON.stringify({
           filename: finalFile.name,
-          contentType: finalFile.type,
+          contentType: finalFile.type || 'application/octet-stream',
           projectId
         })
       })
