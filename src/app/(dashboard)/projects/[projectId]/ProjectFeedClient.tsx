@@ -9,6 +9,7 @@ import { Paperclip, Send, Plus, X, Edit2, Check } from 'lucide-react'
 
 export default function ProjectFeedClient({ project }: { project: any }) {
   const [showUpload, setShowUpload] = useState(false)
+  const [showProjectFileUpload, setShowProjectFileUpload] = useState(false)
   const [showPostUpdateForm, setShowPostUpdateForm] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -211,7 +212,29 @@ export default function ProjectFeedClient({ project }: { project: any }) {
         </div>
         
         <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Project Files</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">Project Files</h3>
+            <button 
+              onClick={() => setShowProjectFileUpload(!showProjectFileUpload)}
+              className="flex items-center justify-center rounded-lg bg-neutral-800 p-1.5 text-neutral-400 hover:bg-neutral-700 hover:text-white transition-all"
+              title="Upload Project File"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+
+          {showProjectFileUpload && (
+            <div className="mb-4">
+              <FileUploadZone 
+                projectId={project.id} 
+                onUploadSuccess={() => {
+                  setShowProjectFileUpload(false)
+                  router.refresh()
+                }} 
+              />
+            </div>
+          )}
+
           {project.files?.length === 0 ? (
             <p className="text-sm text-neutral-500">No standalone files uploaded.</p>
           ) : (
