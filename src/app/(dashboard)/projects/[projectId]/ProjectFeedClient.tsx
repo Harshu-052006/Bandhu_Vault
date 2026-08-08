@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import FileUploadZone from '@/components/features/file-upload-zone'
 import UpdateCard from '@/components/features/update-card'
+import MediaPlayer from '@/components/features/media-player'
 import { postUpdate, updateProjectDescription, deleteProject } from '@/lib/actions/project-actions'
 import { useRouter } from 'next/navigation'
 import { Paperclip, Send, Plus, X, Edit2, Check } from 'lucide-react'
@@ -11,7 +12,7 @@ export default function ProjectFeedClient({ project }: { project: any }) {
   const [showUpload, setShowUpload] = useState(false)
   const [showProjectFileUpload, setShowProjectFileUpload] = useState(false)
   const [showPostUpdateForm, setShowPostUpdateForm] = useState(false)
-  const [attachedFiles, setAttachedFiles] = useState<string[]>([])
+  const [attachedFiles, setAttachedFiles] = useState<any[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isEditingDesc, setIsEditingDesc] = useState(false)
   const [editDescValue, setEditDescValue] = useState(project.description || "")
@@ -33,8 +34,8 @@ export default function ProjectFeedClient({ project }: { project: any }) {
     }
   }
 
-  const handleUploadSuccess = (fileId: string) => {
-    setAttachedFiles(prev => [...prev, fileId])
+  const handleUploadSuccess = (file: any) => {
+    setAttachedFiles(prev => [...prev, file])
     setShowUpload(false)
   }
 
@@ -43,7 +44,7 @@ export default function ProjectFeedClient({ project }: { project: any }) {
     setIsSubmitting(true)
     try {
       const formData = new FormData(e.currentTarget)
-      formData.append('fileIds', JSON.stringify(attachedFiles))
+      formData.append('fileIds', JSON.stringify(attachedFiles.map(f => f.id)))
       await postUpdate(project.id, formData)
       e.currentTarget.reset()
       setAttachedFiles([])
@@ -100,8 +101,10 @@ export default function ProjectFeedClient({ project }: { project: any }) {
                 />
                 
                 {attachedFiles.length > 0 && (
-                  <div className="text-sm text-indigo-400 font-medium bg-indigo-500/10 p-3 rounded-lg border border-indigo-500/20">
-                    {attachedFiles.length} file(s) attached
+                  <div className="space-y-4">
+                    {attachedFiles.map((file) => (
+                      <MediaPlayer key={file.id} url={file.fileUrl} type={file.mimeType} />
+                    ))}
                   </div>
                 )}
 
@@ -258,7 +261,8 @@ export default function ProjectFeedClient({ project }: { project: any }) {
           <h3 className="text-lg font-semibold text-red-500 mb-2">Danger Zone</h3>
           <p className="text-sm text-neutral-400 mb-4">Once you delete a project, there is no going back. Please be certain.</p>
           <button 
-            onClick={handleDeleteProject}
+
+onClick={handleDeleteProject}
             disabled={isDeleting}
             className="w-full flex justify-center items-center rounded-xl bg-red-600/10 border border-red-900/50 px-4 py-2 text-sm font-semibold text-red-500 hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
           >

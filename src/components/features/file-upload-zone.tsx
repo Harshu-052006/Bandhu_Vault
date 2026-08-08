@@ -5,7 +5,7 @@ import { UploadCloud } from 'lucide-react'
 import { saveFileMetadata } from '@/lib/actions/file-actions'
 import imageCompression from 'browser-image-compression'
 
-export default function FileUploadZone({ projectId, onUploadSuccess }: { projectId: string, onUploadSuccess: (fileId: string) => void }) {
+export default function FileUploadZone({ projectId, onUploadSuccess }: { projectId: string, onUploadSuccess: (file: any) => void }) {
   const [isDragging, setIsDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -81,7 +81,7 @@ export default function FileUploadZone({ projectId, onUploadSuccess }: { project
       })
       
       setProgress(100)
-      onUploadSuccess(dbFile.id)
+      onUploadSuccess(dbFile)
     } catch (error) {
       console.error(error)
       alert("Failed to upload file")

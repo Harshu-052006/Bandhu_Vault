@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { Download, X } from 'lucide-react'
+import MarkdownViewer from './markdown-viewer'
 
 export default function MediaPlayer({ url, type }: { url: string, type: string }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -55,6 +56,10 @@ export default function MediaPlayer({ url, type }: { url: string, type: string }
         )}
       </>
     )
+  }
+
+  if (type === 'text/markdown' || url.toLowerCase().endsWith('.md')) {
+    return <MarkdownViewer url={url} filename={url.split('/').pop() || 'Document.md'} />
   }
 
   return (
