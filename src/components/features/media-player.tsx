@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react'
 import { Download, X } from 'lucide-react'
-import MarkdownViewer from './markdown-viewer'
+import dynamic from 'next/dynamic'
+
+const MarkdownViewer = dynamic(() => import('./markdown-viewer'), { ssr: false })
 
 export default function MediaPlayer({ url, type }: { url: string, type: string }) {
   const [isOpen, setIsOpen] = useState(false)
