@@ -5,8 +5,9 @@ import FileUploadZone from '@/components/features/file-upload-zone'
 import UpdateCard from '@/components/features/update-card'
 import MediaPlayer from '@/components/features/media-player'
 import { postUpdate, updateProjectDescription, deleteProject } from '@/lib/actions/project-actions'
+import { deleteFile } from '@/lib/actions/file-actions'
 import { useRouter } from 'next/navigation'
-import { Paperclip, Send, Plus, X, Edit2, Check } from 'lucide-react'
+import { Paperclip, Send, Plus, X, Edit2, Check, Trash2 } from 'lucide-react'
 
 export default function ProjectFeedClient({ project }: { project: any }) {
   const [showUpload, setShowUpload] = useState(false)
@@ -243,15 +244,34 @@ export default function ProjectFeedClient({ project }: { project: any }) {
           ) : (
             <div className="space-y-3">
               {project.files?.map((file: any) => (
-                <a key={file.id} href={file.fileUrl} target="_blank" rel="noreferrer" className="flex items-center space-x-3 p-2 hover:bg-neutral-800 rounded-lg transition-colors group">
-                  <div className="h-8 w-8 rounded bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-                    <Paperclip className="h-4 w-4" />
-                  </div>
-                  <div className="overflow-hidden">
-                    <p className="text-sm font-medium text-neutral-200 truncate">{file.filename}</p>
-                    <p className="text-xs text-neutral-500">{(file.fileSize / 1024 / 1024).toFixed(2)} MB</p>
-                  </div>
-                </a>
+                <div key={file.id} className="flex items-center justify-between p-2 hover:bg-neutral-800 rounded-lg transition-colors group">
+                  <a href={file.fileUrl} target="_blank" rel="noreferrer" className="flex items-center space-x-3 flex-1 overflow-hidden">
+                    <div className="h-8 w-8 shrink-0 rounded bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                      <Paperclip className="h-4 w-4" />
+                    </div>
+                    <div className="overflow-hidden min-w-0">
+                      <p className="text-sm font-medium text-neutral-200 truncate">{file.filename}</p>
+                      <p className="text-xs text-neutral-500">{(file.fileSize / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                  </a>
+                  <button 
+                    onClick={async (e) => {
+                      e.preventDefault()
+                      if (confirm("Are you sure you want to delete this file?")) {
+                        try {
+                          await deleteFile(file.id)
+                          router.refresh()
+                        } catch (err) {
+                          alert("Failed to delete file")
+                        }
+                      }
+                    }}
+                    className="p-2 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all ml-2"
+                    title="Delete File"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
