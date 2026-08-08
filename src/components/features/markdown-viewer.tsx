@@ -4,9 +4,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Eye, Code, Copy, Maximize2, Minimize2, FileText } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-// @ts-ignore
-import html2pdf from 'html2pdf.js'
-import { saveAs } from 'file-saver'
 
 interface MarkdownViewerProps {
   url: string
@@ -40,8 +37,10 @@ export default function MarkdownViewer({ url, filename = "Document.md" }: Markdo
     navigator.clipboard.writeText(content)
   }
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!contentRef.current) return
+    // Dynamically import to avoid SSR issues on Vercel
+    const html2pdf = (await import('html2pdf.js')).default
     const opt = {
       margin:       10,
       filename:     `${filename.replace('.md', '')}.pdf`,
@@ -52,7 +51,7 @@ export default function MarkdownViewer({ url, filename = "Document.md" }: Markdo
     html2pdf().set(opt).from(contentRef.current).save()
   }
 
-  const exportWord = () => {
+  const exportWord = async () => {
     if (!contentRef.current) return
     const htmlContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -63,6 +62,7 @@ export default function MarkdownViewer({ url, filename = "Document.md" }: Markdo
     const blob = new Blob(['\ufeff', htmlContent], {
       type: 'application/msword'
     })
+    const { saveAs } = await import('file-saver')
     saveAs(blob, `${filename.replace('.md', '')}.doc`)
   }
 
