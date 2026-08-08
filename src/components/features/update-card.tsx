@@ -13,10 +13,10 @@ export default function UpdateCard({ update }: { update: any }) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <div className="h-10 w-10 rounded-full bg-indigo-500/20 ring-1 ring-indigo-500/30 flex items-center justify-center text-indigo-400 font-medium">
-              {update.author?.email ? update.author.email.charAt(0).toUpperCase() : 'U'}
+              {update.author?.name ? update.author.name.charAt(0).toUpperCase() : update.author?.email ? update.author.email.charAt(0).toUpperCase() : 'U'}
             </div>
             <div>
-              <p className="text-sm font-medium text-neutral-200">{update.author?.email || 'Team Member'}</p>
+              <p className="text-sm font-medium text-neutral-200">{update.author?.name || update.author?.email || 'Team Member'}</p>
               <p className="text-xs text-neutral-500">{formatDistanceToNow(new Date(update.createdAt), { addSuffix: true })}</p>
             </div>
           </div>
@@ -44,10 +44,10 @@ export default function UpdateCard({ update }: { update: any }) {
           {update.comments?.map((comment: any) => (
             <div key={comment.id} className="flex space-x-3">
               <div className="h-8 w-8 shrink-0 rounded-full bg-neutral-800 flex items-center justify-center text-xs text-neutral-400">
-                {comment.author?.email ? comment.author.email.charAt(0).toUpperCase() : 'U'}
+                {comment.author?.name ? comment.author.name.charAt(0).toUpperCase() : comment.author?.email ? comment.author.email.charAt(0).toUpperCase() : 'U'}
               </div>
               <div className="flex-1 rounded-2xl rounded-tl-none bg-neutral-800/50 px-4 py-3">
-                <p className="text-xs font-medium text-neutral-400 mb-1">{comment.author?.email || 'Team Member'}</p>
+                <p className="text-xs font-medium text-neutral-400 mb-1">{comment.author?.name || comment.author?.email || 'Team Member'}</p>
                 <p className="text-sm text-neutral-200">{comment.text}</p>
               </div>
             </div>

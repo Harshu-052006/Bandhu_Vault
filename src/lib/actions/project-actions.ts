@@ -1,29 +1,40 @@
 'use server'
 
-import { auth } from '@clerk/nextjs/server'
 import prisma from '@/lib/db'
 import { revalidatePath } from 'next/cache'
+import { ensureUser } from './user-actions'
 
 export async function getProjects() {
-  const { userId } = await auth()
-  if (!userId) throw new Error("Unauthorized")
+  const userId = await ensureUser()
   
   return prisma.project.findMany({
+    where: {
+      OR: [
+        { isPrivate: false },
+        { leaderId: userId },
+        { members: { some: { userId } } }
+      ]
+    },
     orderBy: { createdAt: 'desc' }
   })
 }
 
 export async function createProject(formData: FormData) {
-  const { userId } = await auth()
-  if (!userId) throw new Error("Unauthorized")
+  const userId = await ensureUser()
     
   const name = formData.get('name') as string
   const description = formData.get('description') as string
+  const isPrivate = formData.get('isPrivate') === 'true'
   
   const project = await prisma.project.create({
     data: {
       name,
-      description
+      description,
+      isPrivate,
+      leaderId: userId,
+      members: {
+        create: { userId }
+      }
     }
   })
   
@@ -31,18 +42,25 @@ export async function createProject(formData: FormData) {
 }
 
 export async function getProject(projectId: string) {
-  const { userId } = await auth()
-  if (!userId) throw new Error("Unauthorized")
+  const userId = await ensureUser()
 
-  return prisma.project.findUnique({
+  const project = await prisma.project.findUnique({
     where: { id: projectId },
     include: {
+      members: { include: { user: true } },
+      leader: true,
+      tasks: {
+        include: { assignee: true, creator: true },
+        orderBy: { createdAt: 'desc' }
+      },
       updates: {
         orderBy: { createdAt: 'desc' },
         include: {
+          author: true,
           files: true,
           comments: {
-            orderBy: { createdAt: 'asc' }
+            orderBy: { createdAt: 'asc' },
+            include: { author: true }
           }
         }
       },
@@ -52,23 +70,24 @@ export async function getProject(projectId: string) {
       }
     }
   })
+  
+  if (!project) return null
+  
+  if (project.isPrivate && project.leaderId !== userId && !project.members.some(m => m.userId === userId)) {
+    throw new Error("Unauthorized to access this project")
+  }
+  
+  return project
 }
 
 export async function postUpdate(projectId: string, formData: FormData) {
-  const { userId } = await auth()
-  if (!userId) throw new Error("Unauthorized")
+  const userId = await ensureUser()
 
   const title = formData.get('title') as string
   const content = formData.get('content') as string
   const fileIdsStr = formData.get('fileIds') as string
   const fileIds = fileIdsStr ? JSON.parse(fileIdsStr) : []
   
-  await prisma.user.upsert({
-    where: { id: userId },
-    update: {},
-    create: { id: userId, email: `${userId}@clerk.local` } 
-  })
-
   const update = await prisma.projectUpdate.create({
     data: {
       title,
@@ -90,17 +109,10 @@ export async function postUpdate(projectId: string, formData: FormData) {
 }
 
 export async function postComment(updateId: string, formData: FormData) {
-  const { userId } = await auth()
-  if (!userId) throw new Error("Unauthorized")
+  const userId = await ensureUser()
 
   const text = formData.get('text') as string
   
-  await prisma.user.upsert({
-    where: { id: userId },
-    update: {},
-    create: { id: userId, email: `${userId}@clerk.local` }
-  })
-
   await prisma.comment.create({
     data: {
       text,
@@ -113,9 +125,11 @@ export async function postComment(updateId: string, formData: FormData) {
 }
 
 export async function updateProjectDescription(projectId: string, description: string) {
-  const { userId } = await auth()
-  if (!userId) throw new Error("Unauthorized")
+  const userId = await ensureUser()
     
+  const project = await prisma.project.findUnique({ where: { id: projectId } })
+  if (project?.leaderId !== userId) throw new Error("Only leader can update description")
+  
   await prisma.project.update({
     where: { id: projectId },
     data: { description }
@@ -125,8 +139,10 @@ export async function updateProjectDescription(projectId: string, description: s
 }
 
 export async function deleteProject(projectId: string) {
-  const { userId } = await auth()
-  if (!userId) throw new Error("Unauthorized")
+  const userId = await ensureUser()
+
+  const project = await prisma.project.findUnique({ where: { id: projectId } })
+  if (project?.leaderId !== userId) throw new Error("Only leader can delete project")
 
   const files = await prisma.projectFile.findMany({ where: { projectId } })
 
