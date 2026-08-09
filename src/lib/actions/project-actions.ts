@@ -168,3 +168,18 @@ export async function deleteProject(projectId: string) {
   
   revalidatePath('/projects')
 }
+
+export async function updateProjectVisibility(projectId: string, isPrivate: boolean) {
+  const userId = await ensureUser()
+    
+  const project = await prisma.project.findUnique({ where: { id: projectId } })
+  if (project?.leaderId !== userId) throw new Error("Only leader can update visibility")
+  
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { isPrivate }
+  })
+  
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath(`/`)
+}

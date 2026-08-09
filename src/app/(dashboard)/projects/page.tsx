@@ -1,7 +1,7 @@
-import { getProjects, createProject } from "@/lib/actions/project-actions"
+import { getProjects } from "@/lib/actions/project-actions"
 import Link from "next/link"
-import { FolderGit2, Plus, ArrowRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { FolderGit2, ArrowRight } from "lucide-react"
+import CreateProjectModal from "./CreateProjectModal"
 
 export default async function DashboardPage() {
   const projects = await getProjects()
@@ -13,28 +13,7 @@ export default async function DashboardPage() {
           <h1 className="text-4xl font-bold tracking-tight mb-2">Projects</h1>
           <p className="text-neutral-400">Manage and view updates across all team workspaces.</p>
         </div>
-        <form action={createProject} className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-start sm:items-center">
-          <input 
-            type="text" 
-            name="name" 
-            placeholder="New project name..." 
-            required
-            className="flex h-10 w-full sm:w-48 rounded-md border border-neutral-800 bg-neutral-900/50 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
-          />
-          <input 
-            type="text" 
-            name="description" 
-            placeholder="Description (optional)" 
-            className="flex h-10 w-full sm:w-64 rounded-md border border-neutral-800 bg-neutral-900/50 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
-          />
-          <div className="flex items-center space-x-2 px-2 h-10">
-            <input type="checkbox" name="isPrivate" id="isPrivate" value="true" className="rounded border-neutral-700 bg-neutral-900 text-indigo-600 focus:ring-indigo-600 focus:ring-offset-neutral-950" />
-            <label htmlFor="isPrivate" className="text-sm text-neutral-400 whitespace-nowrap">Private</label>
-          </div>
-          <Button type="submit" className="bg-indigo-600 w-full sm:w-auto hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 border-0">
-            <Plus className="mr-2 h-4 w-4" /> Create
-          </Button>
-        </form>
+        <CreateProjectModal />
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

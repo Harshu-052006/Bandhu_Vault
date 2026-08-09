@@ -18,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <body suppressHydrationWarning className={`font-sans antialiased bg-neutral-50 text-neutral-900 min-h-screen flex flex-col`}>
           {children}
         </body>

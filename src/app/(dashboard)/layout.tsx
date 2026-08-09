@@ -1,6 +1,6 @@
 import { UserButton } from "@clerk/nextjs"
 import Link from "next/link"
-import { Layers } from "lucide-react"
+import { Layers, Database } from "lucide-react"
 import prisma from "@/lib/db"
 
 async function StorageAlert() {
@@ -22,27 +22,48 @@ async function StorageAlert() {
   )
 }
 
+async function StorageIndicator() {
+  const result = await prisma.projectFile.aggregate({
+    _sum: { fileSize: true }
+  });
+  const totalBytes = result._sum.fileSize || 0;
+  const gbUsed = totalBytes / (1024 * 1024 * 1024);
+  const maxGb = 10;
+  const percentage = (gbUsed / maxGb) * 100;
+  
+  return (
+    <Link href="/admin" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900/50 border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/50 transition-all group" title={`${gbUsed.toFixed(2)}GB / ${maxGb}GB used`} suppressHydrationWarning>
+      <Database className="h-3.5 w-3.5 text-neutral-400 group-hover:text-indigo-400 transition-colors" />
+      <div className="w-16 h-1.5 bg-neutral-800 rounded-full overflow-hidden" suppressHydrationWarning>
+        <div 
+          className={`h-full rounded-full transition-all duration-500 ${percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-orange-500' : 'bg-indigo-500'}`} 
+          style={{ width: `${Math.min(percentage, 100)}%` }} 
+          suppressHydrationWarning
+        />
+      </div>
+    </Link>
+  )
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-50 selection:bg-indigo-500/30 w-full">
+    <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-50 selection:bg-indigo-500/30 w-full" suppressHydrationWarning>
       <header className="sticky top-0 z-50 w-full border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-xl">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4" suppressHydrationWarning>
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500 shadow-lg shadow-indigo-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500 shadow-lg shadow-indigo-500/20" suppressHydrationWarning>
               <Layers className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold tracking-tight bg-gradient-to-br from-white to-neutral-400 bg-clip-text text-transparent">Bandhu Vault</span>
           </Link>
-          <div className="flex items-center gap-4">
-            <Link href="/admin" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">
-              Admin
-            </Link>
+          <div className="flex items-center gap-4" suppressHydrationWarning>
+            <StorageIndicator />
             <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 ring-2 ring-neutral-800" } }} />
           </div>
         </div>
       </header>
       <StorageAlert />
-      <main className="flex-1 flex w-full">
+      <main className="flex-1 flex w-full" suppressHydrationWarning>
         {children}
       </main>
     </div>

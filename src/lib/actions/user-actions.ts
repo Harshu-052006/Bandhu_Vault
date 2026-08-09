@@ -1,11 +1,12 @@
-'use server'
-
-import { currentUser } from '@clerk/nextjs/server'
+import { currentUser, auth } from '@clerk/nextjs/server'
 import prisma from '@/lib/db'
 
 export async function ensureUser() {
   const user = await currentUser()
-  if (!user) throw new Error("Unauthorized")
+  if (!user) {
+    const { redirectToSignIn } = await auth()
+    return redirectToSignIn()
+  }
   
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ')
   const email = user.emailAddresses[0]?.emailAddress || `${user.id}@clerk.local`
