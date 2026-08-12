@@ -183,3 +183,40 @@ export async function updateProjectVisibility(projectId: string, isPrivate: bool
   revalidatePath(`/projects/${projectId}`)
   revalidatePath(`/`)
 }
+
+export async function deleteUpdate(updateId: string) {
+  const userId = await ensureUser()
+
+  const update = await prisma.projectUpdate.findUnique({
+    where: { id: updateId },
+    include: { project: true, files: true }
+  })
+
+  if (!update) throw new Error("Update not found")
+
+  if (update.authorId !== userId && update.project.leaderId !== userId) {
+    throw new Error("Unauthorized to delete this update")
+  }
+
+  if (update.files && update.files.length > 0) {
+    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
+    const { r2 } = await import('@/lib/r2')
+    
+    for (const file of update.files) {
+      try {
+        await r2.send(new DeleteObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME || '',
+          Key: file.r2Key
+        }))
+      } catch (err) {
+        console.error("Failed to delete from R2:", err)
+      }
+    }
+  }
+
+  await prisma.projectUpdate.delete({
+    where: { id: updateId }
+  })
+
+  revalidatePath(`/projects/${update.projectId}`)
+}

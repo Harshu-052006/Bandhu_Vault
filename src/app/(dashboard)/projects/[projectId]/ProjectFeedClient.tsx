@@ -165,7 +165,7 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
 
         <div className="space-y-6 mt-8 w-full">
           {project.updates.map((update: any) => (
-            <UpdateCard key={update.id} update={update} />
+            <UpdateCard key={update.id} update={update} currentUserId={currentUserId} isLeader={isLeader} />
           ))}
           
           {project.updates.length === 0 && (

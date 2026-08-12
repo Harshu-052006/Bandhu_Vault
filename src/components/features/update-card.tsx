@@ -3,10 +3,12 @@
 import React from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import MediaPlayer from './media-player'
-import { MessageSquare } from 'lucide-react'
-import { postComment } from '@/lib/actions/project-actions'
+import { MessageSquare, Trash2 } from 'lucide-react'
+import { postComment, deleteUpdate } from '@/lib/actions/project-actions'
 
-export default function UpdateCard({ update }: { update: any }) {
+export default function UpdateCard({ update, currentUserId, isLeader }: { update: any, currentUserId?: string, isLeader?: boolean }) {
+  const canDelete = isLeader || (currentUserId && update.authorId === currentUserId)
+
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950/50 shadow-xl backdrop-blur-sm">
       <div className="p-6">
@@ -20,6 +22,23 @@ export default function UpdateCard({ update }: { update: any }) {
               <p className="text-xs text-neutral-500">{formatDistanceToNow(new Date(update.createdAt), { addSuffix: true })}</p>
             </div>
           </div>
+          {canDelete && (
+            <button
+              onClick={async () => {
+                if(confirm("Are you sure you want to delete this update?")) {
+                  try {
+                    await deleteUpdate(update.id)
+                  } catch (e) {
+                    alert("Failed to delete update")
+                  }
+                }
+              }}
+              className="text-neutral-500 hover:text-red-400 transition-colors"
+              title="Delete Update"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
         
         <h3 className="text-xl font-semibold text-white mb-2">{update.title}</h3>
