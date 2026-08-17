@@ -15,9 +15,9 @@ async function StorageAlert() {
   if (percentage < 80) return null;
 
   return (
-    <div className={`w-full text-center py-2 px-4 text-sm font-medium ${percentage >= 90 ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}>
+    <div className={`w-full text-center py-2 px-4 text-sm font-medium ${percentage >= 90 ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'}`}>
       ⚠️ Storage Alert: You have used {gbUsed.toFixed(2)}GB ({percentage.toFixed(1)}%) of your {maxGb}GB limit.
-      <Link href="/admin" className="ml-2 underline hover:text-white transition-colors">Manage Storage</Link>
+      <Link href="/admin" className="ml-2 underline hover:text-foreground transition-colors">Manage Storage</Link>
     </div>
   )
 }
@@ -32,11 +32,11 @@ async function StorageIndicator() {
   const percentage = (gbUsed / maxGb) * 100;
   
   return (
-    <Link href="/admin" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900/50 border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/50 transition-all group" title={`${gbUsed.toFixed(2)}GB / ${maxGb}GB used`} suppressHydrationWarning>
-      <Database className="h-3.5 w-3.5 text-neutral-400 group-hover:text-indigo-400 transition-colors" />
-      <div className="w-16 h-1.5 bg-neutral-800 rounded-full overflow-hidden" suppressHydrationWarning>
+    <Link href="/admin" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted border border-border hover:border-muted-foreground/30 hover:bg-muted/80 transition-all group" title={`${gbUsed.toFixed(2)}GB / ${maxGb}GB used`} suppressHydrationWarning>
+      <Database className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+      <div className="w-16 h-1.5 bg-border rounded-full overflow-hidden" suppressHydrationWarning>
         <div 
-          className={`h-full rounded-full transition-all duration-500 ${percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-orange-500' : 'bg-indigo-500'}`} 
+          className={`h-full rounded-full transition-all duration-500 ${percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-orange-500' : 'bg-primary'}`} 
           style={{ width: `${Math.min(percentage, 100)}%` }} 
           suppressHydrationWarning
         />
@@ -47,18 +47,18 @@ async function StorageIndicator() {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-50 selection:bg-indigo-500/30 w-full" suppressHydrationWarning>
-      <header className="sticky top-0 z-50 w-full border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-xl">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4" suppressHydrationWarning>
-          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500 shadow-lg shadow-indigo-500/20" suppressHydrationWarning>
-              <Layers className="h-5 w-5 text-white" />
+    <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/10 w-full" suppressHydrationWarning>
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 max-w-7xl" suppressHydrationWarning>
+          <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm" suppressHydrationWarning>
+              <Layers className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold tracking-tight bg-gradient-to-br from-white to-neutral-400 bg-clip-text text-transparent">Bandhu Vault</span>
+            <span className="text-xl font-bold tracking-tight text-foreground">Bandhu Vault</span>
           </Link>
           <div className="flex items-center gap-4" suppressHydrationWarning>
             <StorageIndicator />
-            <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 ring-2 ring-neutral-800" } }} />
+            <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 ring-2 ring-border" } }} />
           </div>
         </div>
       </header>
