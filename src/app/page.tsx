@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { ArrowRight, Layers, Shield, Zap, HardDrive } from "lucide-react";
+import { AnimatedGrid } from "@/components/ui/animated-grid";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/10 font-sans flex flex-col" suppressHydrationWarning>
+    <div className="min-h-screen bg-transparent text-foreground selection:bg-primary/10 font-sans flex flex-col relative" suppressHydrationWarning>
+      <AnimatedGrid />
       {/* Navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl" suppressHydrationWarning>
         <div className="container mx-auto flex h-16 items-center justify-between px-6" suppressHydrationWarning>
@@ -37,7 +39,7 @@ export default function LandingPage() {
       <main className="flex-1 flex flex-col" suppressHydrationWarning>
         <section className="flex-1 flex flex-col items-center justify-center text-center px-4 py-20 lg:py-32 relative overflow-hidden">
           {/* Background Glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-muted blur-[120px] rounded-full pointer-events-none" suppressHydrationWarning />
+          {/* Replaced by AnimatedGrid */}
           
           <div className="relative z-10 max-w-3xl mx-auto space-y-8" suppressHydrationWarning>
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
