@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import FileUploadZone from '@/components/features/file-upload-zone'
 import UpdateCard from '@/components/features/update-card'
 import MediaPlayer from '@/components/features/media-player'
+import KanbanBoard from '@/components/features/kanban-board'
 import { postUpdate, updateProjectDescription, deleteProject } from '@/lib/actions/project-actions'
 import { deleteFile } from '@/lib/actions/file-actions'
 import { addProjectMember, removeProjectMember } from '@/lib/actions/member-actions'
@@ -28,18 +29,6 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
   // Members state
   const [inviteEmail, setInviteEmail] = useState('')
   const [isInviting, setIsInviting] = useState(false)
-
-  // Tasks state
-  const [showTaskForm, setShowTaskForm] = useState(false)
-  const [taskTitle, setTaskTitle] = useState('')
-  const [taskDesc, setTaskDesc] = useState('')
-  const [taskAssignee, setTaskAssignee] = useState('')
-  const [isCreatingTask, setIsCreatingTask] = useState(false)
-  
-  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null)
-  const [proofText, setProofText] = useState('')
-  const [proofUrl, setProofUrl] = useState('')
-  const [isCompletingTask, setIsCompletingTask] = useState(false)
 
   const handleDeleteProject = async () => {
     if (confirm("Are you sure you want to delete this project? This action cannot be undone.")) {
@@ -311,174 +300,8 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
           </div>
         )}
 
-        {/* Tasks Section */}
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white flex items-center">
-              <CheckCircle className="h-4 w-4 mr-2 text-indigo-400" />
-              Tasks
-            </h3>
-            {isLeader && (
-              <button 
-                onClick={() => setShowTaskForm(!showTaskForm)}
-                className="rounded-lg bg-neutral-800 p-1.5 text-neutral-400 hover:bg-neutral-700 hover:text-white transition-all"
-                title="Assign Task"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          {showTaskForm && (
-            <div className="mb-6 p-4 rounded-xl bg-neutral-950 border border-neutral-800 space-y-3">
-              <input 
-                placeholder="Task Title"
-                value={taskTitle}
-                onChange={e => setTaskTitle(e.target.value)}
-                className="w-full rounded-md bg-neutral-900 px-3 py-2 text-sm text-white focus:outline-none"
-              />
-              <textarea 
-                placeholder="Description (optional)"
-                value={taskDesc}
-                onChange={e => setTaskDesc(e.target.value)}
-                className="w-full rounded-md bg-neutral-900 px-3 py-2 text-sm text-white focus:outline-none resize-none"
-                rows={2}
-              />
-              <select 
-                value={taskAssignee}
-                onChange={e => setTaskAssignee(e.target.value)}
-                className="w-full rounded-md bg-neutral-900 px-3 py-2 text-sm text-white focus:outline-none"
-              >
-                <option value="" disabled>Assign to...</option>
-                {/* Leader can assign to themselves or members */}
-                <option value={project.leaderId}>{project.leader?.name || "Group Leader"}</option>
-                {project.members?.map((m: any) => (
-                  <option key={m.userId} value={m.userId}>{m.user?.name || m.user?.email}</option>
-                ))}
-              </select>
-              <div className="flex justify-end space-x-2">
-                <button onClick={() => setShowTaskForm(false)} className="text-xs text-neutral-500 hover:text-white">Cancel</button>
-                <button 
-                  disabled={!taskTitle || !taskAssignee || isCreatingTask}
-                  onClick={async () => {
-                    setIsCreatingTask(true)
-                    try {
-                      const formData = new FormData()
-                      formData.append('title', taskTitle)
-                      formData.append('description', taskDesc)
-                      formData.append('assigneeId', taskAssignee)
-                      await createTask(project.id, formData)
-                      setTaskTitle('')
-                      setTaskDesc('')
-                      setTaskAssignee('')
-                      setShowTaskForm(false)
-                    } catch (e) {
-                      console.error(e)
-                    } finally {
-                      setIsCreatingTask(false)
-                    }
-                  }}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md text-xs font-medium disabled:opacity-50"
-                >
-                  Assign Task
-                </button>
-              </div>
-            </div>
-          )}
-
-          {project.tasks?.length === 0 ? (
-            <p className="text-sm text-neutral-500">No tasks assigned yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {project.tasks?.map((task: any) => {
-                const isAssignee = task.assigneeId === currentUserId;
-                const isCompleted = task.status === 'COMPLETED';
-                
-                return (
-                  <div key={task.id} className={`p-3 rounded-xl border ${isCompleted ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-neutral-950 border-neutral-800'}`}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className={`text-sm font-medium ${isCompleted ? 'text-indigo-200 line-through' : 'text-neutral-200'}`}>
-                          {task.title}
-                        </h4>
-                        {task.description && (
-                          <p className="text-xs text-neutral-500 mt-1">{task.description}</p>
-                        )}
-                        <div className="flex items-center space-x-2 mt-2">
-                          <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-500 bg-neutral-900 px-1.5 py-0.5 rounded">
-                            {task.assignee?.name?.split(' ')[0]}
-                          </span>
-                          {isCompleted && <span className="text-[10px] uppercase tracking-wider font-semibold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded">Completed</span>}
-                        </div>
-                      </div>
-                      
-                      {isLeader && (
-                        <button onClick={() => {
-                          if(confirm("Delete task?")) deleteTask(task.id)
-                        }} className="text-neutral-600 hover:text-red-400">
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-
-                    {isCompleted && (task.proofText || task.proofFileUrl) && (
-                      <div className="mt-3 pt-3 border-t border-neutral-800/50">
-                        <p className="text-xs text-neutral-500 mb-1">Proof of completion:</p>
-                        {task.proofText && <p className="text-xs text-neutral-300 italic">"{task.proofText}"</p>}
-                        {task.proofFileUrl && (
-                          <a href={task.proofFileUrl} target="_blank" className="inline-flex items-center text-xs text-indigo-400 hover:text-indigo-300 mt-1">
-                            <LinkIcon className="h-3 w-3 mr-1" /> View Attachment
-                          </a>
-                        )}
-                      </div>
-                    )}
-
-                    {!isCompleted && isAssignee && completingTaskId !== task.id && (
-                      <button 
-                        onClick={() => setCompletingTaskId(task.id)}
-                        className="mt-3 w-full rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 py-1.5 text-xs font-medium transition-colors"
-                      >
-                        Complete Task
-                      </button>
-                    )}
-
-                    {completingTaskId === task.id && (
-                      <div className="mt-3 pt-3 border-t border-neutral-800">
-                        <p className="text-xs text-neutral-400 mb-2">Provide proof of completion:</p>
-                        <input 
-                          type="text" 
-                          placeholder="Link to work or brief note..." 
-                          value={proofText}
-                          onChange={e => setProofText(e.target.value)}
-                          className="w-full text-xs rounded border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-white focus:border-indigo-500 focus:outline-none mb-2"
-                        />
-                        <div className="flex justify-end space-x-2">
-                          <button onClick={() => setCompletingTaskId(null)} className="text-xs text-neutral-500">Cancel</button>
-                          <button 
-                            disabled={isCompletingTask}
-                            onClick={async () => {
-                              setIsCompletingTask(true)
-                              const fd = new FormData()
-                              fd.append('proofText', proofText)
-                              // proofFileUrl omitted for brevity, but could hook into FileUploadZone
-                              await completeTask(task.id, fd)
-                              setCompletingTaskId(null)
-                              setProofText('')
-                              setIsCompletingTask(false)
-                            }}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded text-xs"
-                          >
-                            Submit
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+        {/* Tasks Section (Kanban Board) */}
+        <KanbanBoard project={project} currentUserId={currentUserId} isLeader={isLeader} />
         
         <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6">
           <div className="flex items-center justify-between mb-4">

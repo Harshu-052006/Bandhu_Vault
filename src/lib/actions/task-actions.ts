@@ -64,3 +64,24 @@ export async function deleteTask(taskId: string) {
   
   revalidatePath(`/projects/${task.projectId}`)
 }
+
+export async function updateTaskStatus(taskId: string, status: string) {
+  const userId = await ensureUser()
+  
+  const task = await prisma.task.findUnique({ where: { id: taskId } })
+  if (!task) throw new Error("Task not found")
+  
+  const project = await prisma.project.findUnique({ where: { id: task.projectId } })
+  
+  // Either the leader or the assignee can update the status
+  if (project?.leaderId !== userId && task.assigneeId !== userId) {
+    throw new Error("Not authorized to update this task")
+  }
+  
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { status }
+  })
+  
+  revalidatePath(`/projects/${task.projectId}`)
+}
