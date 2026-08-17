@@ -32,21 +32,6 @@
   --radius-md: var(--radius);
 }
 
-@media (prefers-color-scheme: dark) {
-  /* Enforce light mode for Phase 1 as per Clean SaaS, but provide basic fallbacks if OS is dark */
-  :root {
-    --background: #09090B;
-    --surface: #18181B;
-    --foreground: #FAFAFA;
-    --muted: #27272A;
-    --muted-foreground: #A1A1AA;
-    --primary: #FAFAFA;
-    --primary-foreground: #09090B;
-    --border: #27272A;
-    --ring: #FAFAFA;
-  }
-}
-
 body {
   background-color: var(--background);
   color: var(--foreground);
