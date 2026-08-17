@@ -10,16 +10,16 @@ export default function UpdateCard({ update, currentUserId, isLeader }: { update
   const canDelete = isLeader || (currentUserId && update.authorId === currentUserId)
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950/50 shadow-xl backdrop-blur-sm">
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-md backdrop-blur-sm">
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-indigo-500/20 ring-1 ring-indigo-500/30 flex items-center justify-center text-indigo-400 font-medium">
+            <div className="h-10 w-10 rounded-full bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center text-primary font-medium">
               {update.author?.name ? update.author.name.charAt(0).toUpperCase() : update.author?.email ? update.author.email.charAt(0).toUpperCase() : 'U'}
             </div>
             <div>
-              <p className="text-sm font-medium text-neutral-200">{update.author?.name || update.author?.email || 'Team Member'}</p>
-              <p className="text-xs text-neutral-500">{formatDistanceToNow(new Date(update.createdAt), { addSuffix: true })}</p>
+              <p className="text-sm font-medium text-foreground">{update.author?.name || update.author?.email || 'Team Member'}</p>
+              <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(update.createdAt), { addSuffix: true })}</p>
             </div>
           </div>
           {canDelete && (
@@ -33,7 +33,7 @@ export default function UpdateCard({ update, currentUserId, isLeader }: { update
                   }
                 }
               }}
-              className="text-neutral-500 hover:text-red-400 transition-colors"
+              className="text-muted-foreground hover:text-destructive transition-colors"
               title="Delete Update"
             >
               <Trash2 className="h-4 w-4" />
@@ -41,8 +41,8 @@ export default function UpdateCard({ update, currentUserId, isLeader }: { update
           )}
         </div>
         
-        <h3 className="text-xl font-semibold text-white mb-2">{update.title}</h3>
-        <p className="text-neutral-300 whitespace-pre-wrap mb-6">{update.content}</p>
+        <h3 className="text-xl font-semibold text-foreground mb-2">{update.title}</h3>
+        <p className="text-muted-foreground whitespace-pre-wrap mb-6">{update.content}</p>
         
         {update.files && update.files.length > 0 && (
           <div className="space-y-4 mb-6">
@@ -53,8 +53,8 @@ export default function UpdateCard({ update, currentUserId, isLeader }: { update
         )}
       </div>
 
-      <div className="border-t border-neutral-800 bg-neutral-900/30 p-6">
-        <div className="mb-4 flex items-center space-x-2 text-sm font-medium text-neutral-400">
+      <div className="border-t border-border bg-muted/30 p-6">
+        <div className="mb-4 flex items-center space-x-2 text-sm font-medium text-muted-foreground">
           <MessageSquare className="h-4 w-4" />
           <span>{update.comments?.length || 0} Comments</span>
         </div>
@@ -62,12 +62,12 @@ export default function UpdateCard({ update, currentUserId, isLeader }: { update
         <div className="space-y-4 mb-6">
           {update.comments?.map((comment: any) => (
             <div key={comment.id} className="flex space-x-3">
-              <div className="h-8 w-8 shrink-0 rounded-full bg-neutral-800 flex items-center justify-center text-xs text-neutral-400">
+              <div className="h-8 w-8 shrink-0 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">
                 {comment.author?.name ? comment.author.name.charAt(0).toUpperCase() : comment.author?.email ? comment.author.email.charAt(0).toUpperCase() : 'U'}
               </div>
-              <div className="flex-1 rounded-2xl rounded-tl-none bg-neutral-800/50 px-4 py-3">
-                <p className="text-xs font-medium text-neutral-400 mb-1">{comment.author?.name || comment.author?.email || 'Team Member'}</p>
-                <p className="text-sm text-neutral-200">{comment.text}</p>
+              <div className="flex-1 rounded-2xl rounded-tl-none bg-muted/50 px-4 py-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">{comment.author?.name || comment.author?.email || 'Team Member'}</p>
+                <p className="text-sm text-foreground">{comment.text}</p>
               </div>
             </div>
           ))}
@@ -83,9 +83,9 @@ export default function UpdateCard({ update, currentUserId, isLeader }: { update
             name="text" 
             placeholder="Write a comment..." 
             required
-            className="flex h-10 w-full rounded-full border border-neutral-700 bg-neutral-950 px-4 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="flex h-10 w-full rounded-full border border-border bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
-          <button type="submit" className="inline-flex h-10 items-center justify-center rounded-full bg-indigo-600 px-6 text-sm font-medium text-white transition-colors hover:bg-indigo-500">
+          <button type="submit" className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
             Post
           </button>
         </form>

@@ -18,6 +18,22 @@
   --radius: 0.5rem;
 }
 
+.dark {
+  /* Clean SaaS Dark Mode Palette */
+  --background: #09090B;
+  --surface: #18181B;
+  --foreground: #FAFAFA;
+  
+  --muted: #27272A;
+  --muted-foreground: #A1A1AA;
+  
+  --primary: #FAFAFA;
+  --primary-foreground: #18181B;
+  
+  --border: #3F3F46;
+  --ring: #D4D4D8;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

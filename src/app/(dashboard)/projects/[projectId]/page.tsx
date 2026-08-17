@@ -18,18 +18,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8 w-full" suppressHydrationWarning>
       <div className="mb-8" suppressHydrationWarning>
-        <Link href="/" className="inline-flex items-center text-sm font-medium text-neutral-400 hover:text-indigo-400 transition-colors mb-4">
+        <Link href="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Projects
         </Link>
         <div className="flex items-center space-x-3">
-          <h1 className="text-3xl font-bold text-white">{project.name}</h1>
+          <h1 className="text-3xl font-bold text-foreground">{project.name}</h1>
           {isLeader ? (
             <ProjectVisibilityToggle projectId={project.id} initialIsPrivate={project.isPrivate} />
           ) : project.isPrivate ? (
-            <span className="flex items-center text-xs font-medium bg-neutral-800/80 text-neutral-300 px-3 py-1.5 rounded-full border border-neutral-700/50"><Lock className="h-3.5 w-3.5 mr-1.5"/> Private</span>
+            <span className="flex items-center text-xs font-medium bg-muted text-muted-foreground px-3 py-1.5 rounded-full border border-border"><Lock className="h-3.5 w-3.5 mr-1.5"/> Private</span>
           ) : (
-            <span className="flex items-center text-xs font-medium bg-indigo-500/10 text-indigo-400 px-3 py-1.5 rounded-full border border-indigo-500/20"><Globe className="h-3.5 w-3.5 mr-1.5"/> Public</span>
+            <span className="flex items-center text-xs font-medium bg-primary/10 text-primary px-3 py-1.5 rounded-full border border-primary/20"><Globe className="h-3.5 w-3.5 mr-1.5"/> Public</span>
           )}
         </div>
       </div>

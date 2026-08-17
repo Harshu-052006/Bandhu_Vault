@@ -2,6 +2,7 @@ import { UserButton } from "@clerk/nextjs"
 import Link from "next/link"
 import { Layers, Database } from "lucide-react"
 import prisma from "@/lib/db"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 async function StorageAlert() {
   const result = await prisma.projectFile.aggregate({
@@ -57,6 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="text-xl font-bold tracking-tight text-foreground">Bandhu Vault</span>
           </Link>
           <div className="flex items-center gap-4" suppressHydrationWarning>
+            <ThemeToggle />
             <StorageIndicator />
             <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 ring-2 ring-border" } }} />
           </div>
