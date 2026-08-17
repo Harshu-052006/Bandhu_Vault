@@ -10,7 +10,8 @@ import { deleteFile } from '@/lib/actions/file-actions'
 import { addProjectMember, removeProjectMember } from '@/lib/actions/member-actions'
 import { createTask, completeTask, deleteTask } from '@/lib/actions/task-actions'
 import { useRouter } from 'next/navigation'
-import { Paperclip, Send, Plus, X, Edit2, Check, Trash2, Users, CheckCircle, Link as LinkIcon, UserMinus } from 'lucide-react'
+import { Paperclip, Send, Plus, X, Edit2, Check, Trash2, Users, CheckCircle, Link as LinkIcon, UserMinus, LayoutDashboard } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function ProjectFeedClient({ project, currentUserId }: { project: any, currentUserId: string }) {
   const isLeader = project.leaderId === currentUserId
@@ -29,6 +30,14 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
   // Members state
   const [inviteEmail, setInviteEmail] = useState('')
   const [isInviting, setIsInviting] = useState(false)
+
+  // Tabs state
+  const [activeTab, setActiveTab] = useState<'overview' | 'tasks'>('overview')
+
+  const tabs = [
+    { id: 'overview', label: 'Overview & Updates', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { id: 'tasks', label: 'Project Tasks', icon: <CheckCircle className="h-4 w-4" /> }
+  ]
 
   const handleDeleteProject = async () => {
     if (confirm("Are you sure you want to delete this project? This action cannot be undone.")) {
@@ -67,9 +76,40 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
   }
 
   return (
-    <div className="flex flex-col space-y-8 w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
-        <div className="lg:col-span-2 space-y-6">
+    <div className="flex flex-col w-full">
+      
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 bg-muted p-1 rounded-xl w-fit mb-8">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all relative z-10 ${activeTab === tab.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            {tab.icon}
+            {tab.label}
+            {activeTab === tab.id && (
+              <motion.div
+                layoutId="activeProjectTab"
+                className="absolute inset-0 bg-background rounded-lg shadow-sm -z-10 border border-border/50"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+          </button>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {activeTab === 'overview' ? (
+          <motion.div 
+            key="overview"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full"
+          >
+            <div className="lg:col-span-2 space-y-6">
           
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-foreground">Project Updates</h2>
@@ -83,7 +123,7 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
           </div>
 
           {showPostUpdateForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
               <div className="w-full max-w-2xl rounded-2xl border border-border bg-surface p-6 shadow-2xl relative">
                 <button 
                   onClick={() => setShowPostUpdateForm(false)}
@@ -236,9 +276,14 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
               <div className="space-y-3 mb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
-                      {project.leader?.name ? project.leader.name.charAt(0).toUpperCase() : 'L'}
-                    </div>
+                    {project.leader?.avatarUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={project.leader.avatarUrl} alt={project.leader.name || "Leader"} className="h-6 w-6 rounded-full object-cover" />
+                    ) : (
+                      <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
+                        {project.leader?.name ? project.leader.name.charAt(0).toUpperCase() : 'L'}
+                      </div>
+                    )}
                     <span className="text-sm text-foreground">{project.leader?.name || project.leader?.email}</span>
                   </div>
                   <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-medium">Leader</span>
@@ -247,9 +292,14 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
                 {project.members?.map((member: any) => (
                   <div key={member.userId} className="flex items-center justify-between group">
                     <div className="flex items-center space-x-2">
-                      <div className="h-6 w-6 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs">
-                        {member.user?.name ? member.user.name.charAt(0).toUpperCase() : 'M'}
-                      </div>
+                      {member.user?.avatarUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={member.user.avatarUrl} alt={member.user.name || "Member"} className="h-6 w-6 rounded-full object-cover" />
+                      ) : (
+                        <div className="h-6 w-6 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs">
+                          {member.user?.name ? member.user.name.charAt(0).toUpperCase() : 'M'}
+                        </div>
+                      )}
                       <span className="text-sm text-muted-foreground">{member.user?.name || member.user?.email}</span>
                     </div>
                     {isLeader && (
@@ -379,12 +429,20 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
             </div>
           )}
         </div>
-      </div>
-      
-      {/* Tasks Section (Kanban Board) Full Width */}
-      <div className="w-full mt-4 pb-12">
+      </motion.div>
+      ) : (
+      <motion.div 
+        key="tasks"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.2 }}
+        className="w-full pb-12"
+      >
         <KanbanBoard project={project} currentUserId={currentUserId} isLeader={isLeader} />
-      </div>
+      </motion.div>
+      )}
+      </AnimatePresence>
     </div>
   )
 }

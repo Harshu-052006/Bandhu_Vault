@@ -17,7 +17,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'bg-primary text-primary-foreground shadow hover:shadow-md hover:-translate-y-[1px]': variant === 'default',
             'border border-border bg-surface shadow-sm hover:bg-muted hover:text-foreground': variant === 'outline',
             'hover:bg-muted hover:text-foreground': variant === 'ghost',
-            'bg-red-500 text-white shadow-sm hover:bg-red-500/90 hover:shadow-md hover:-translate-y-[1px]': variant === 'destructive',
+            'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 hover:shadow-md hover:-translate-y-[1px]': variant === 'destructive',
             'h-10 px-4 py-2': size === 'default',
             'h-9 rounded-md px-3': size === 'sm',
             'h-11 rounded-md px-8': size === 'lg',

@@ -8,8 +8,9 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl" suppressHydrationWarning>
         <div className="container mx-auto flex h-16 items-center justify-between px-6" suppressHydrationWarning>
           <div className="flex items-center gap-2" suppressHydrationWarning>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm" suppressHydrationWarning>
-              <Layers className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center" suppressHydrationWarning>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Bandhu Vault Logo" className="h-full w-full object-contain drop-shadow-sm" />
             </div>
             <span className="text-xl font-bold tracking-tight text-foreground">
               Bandhu Vault

@@ -52,8 +52,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 max-w-7xl" suppressHydrationWarning>
           <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm" suppressHydrationWarning>
-              <Layers className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center" suppressHydrationWarning>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Bandhu Vault Logo" className="h-full w-full object-contain drop-shadow-sm" />
             </div>
             <span className="text-xl font-bold tracking-tight text-foreground">Bandhu Vault</span>
           </Link>

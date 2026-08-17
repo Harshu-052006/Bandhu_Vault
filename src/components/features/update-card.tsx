@@ -14,9 +14,14 @@ export default function UpdateCard({ update, currentUserId, isLeader }: { update
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center text-primary font-medium">
-              {update.author?.name ? update.author.name.charAt(0).toUpperCase() : update.author?.email ? update.author.email.charAt(0).toUpperCase() : 'U'}
-            </div>
+            {update.author?.avatarUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={update.author.avatarUrl} alt={update.author.name || "User"} className="h-10 w-10 rounded-full object-cover ring-1 ring-primary/20" />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center text-primary font-medium">
+                {update.author?.name ? update.author.name.charAt(0).toUpperCase() : update.author?.email ? update.author.email.charAt(0).toUpperCase() : 'U'}
+              </div>
+            )}
             <div>
               <p className="text-sm font-medium text-foreground">{update.author?.name || update.author?.email || 'Team Member'}</p>
               <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(update.createdAt), { addSuffix: true })}</p>
@@ -62,9 +67,14 @@ export default function UpdateCard({ update, currentUserId, isLeader }: { update
         <div className="space-y-4 mb-6">
           {update.comments?.map((comment: any) => (
             <div key={comment.id} className="flex space-x-3">
-              <div className="h-8 w-8 shrink-0 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                {comment.author?.name ? comment.author.name.charAt(0).toUpperCase() : comment.author?.email ? comment.author.email.charAt(0).toUpperCase() : 'U'}
-              </div>
+              {comment.author?.avatarUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={comment.author.avatarUrl} alt={comment.author.name || "User"} className="h-8 w-8 shrink-0 rounded-full object-cover" />
+              ) : (
+                <div className="h-8 w-8 shrink-0 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                  {comment.author?.name ? comment.author.name.charAt(0).toUpperCase() : comment.author?.email ? comment.author.email.charAt(0).toUpperCase() : 'U'}
+                </div>
+              )}
               <div className="flex-1 rounded-2xl rounded-tl-none bg-muted/50 px-4 py-3">
                 <p className="text-xs font-medium text-muted-foreground mb-1">{comment.author?.name || comment.author?.email || 'Team Member'}</p>
                 <p className="text-sm text-foreground">{comment.text}</p>

@@ -111,23 +111,23 @@ export default function FileUploadZone({ projectId, onUploadSuccess }: { project
   return (
     <div 
       onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
-      className={`relative w-full rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${isDragging ? 'border-indigo-500 bg-indigo-500/10' : 'border-neutral-700 hover:border-neutral-500 bg-neutral-900/30'}`}
+      className={`relative w-full rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${isDragging ? 'border-primary bg-primary/10' : 'border-border hover:border-border/80 bg-muted/30'}`}
     >
       <input type="file" onChange={handleChange} className="absolute inset-0 z-50 h-full w-full cursor-pointer opacity-0" disabled={uploading} />
       <div className="flex flex-col items-center justify-center space-y-4">
-        <div className="rounded-full bg-neutral-800 p-4">
-          <UploadCloud className={`h-8 w-8 ${isDragging ? 'text-indigo-400' : 'text-neutral-400'}`} />
+        <div className="rounded-full bg-muted p-4">
+          <UploadCloud className={`h-8 w-8 ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
         </div>
         <div>
-          <p className="text-lg font-medium text-neutral-200">
+          <p className="text-lg font-medium text-foreground">
             {uploading ? 'Uploading...' : 'Drag & drop a file here'}
           </p>
-          <p className="text-sm text-neutral-500">or click to browse from your device</p>
+          <p className="text-sm text-muted-foreground">or click to browse from your device</p>
         </div>
         {uploading && (
-          <div className="w-full max-w-xs overflow-hidden rounded-full bg-neutral-800 flex items-center relative h-4">
-            <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${progress}%` }} />
-            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow-md">
+          <div className="w-full max-w-xs overflow-hidden rounded-full bg-muted flex items-center relative h-4">
+            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-foreground drop-shadow-md">
               {progress}%
             </span>
           </div>

@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { Moon, Sun } from "lucide-react"
+import { Moon, Sun, Monitor } from "lucide-react"
 import { useTheme } from "next-themes"
+import { motion } from "framer-motion"
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -16,19 +17,41 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface" />
+      <div className="flex items-center p-1 rounded-full border border-border bg-surface/50 w-[100px] h-[38px]" />
     )
   }
 
+  const themes = [
+    { id: "light", icon: Sun },
+    { id: "system", icon: Monitor },
+    { id: "dark", icon: Moon },
+  ]
+
   return (
-    <button
-      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface hover:bg-muted transition-colors relative"
-      title="Toggle Theme"
-    >
-      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-foreground" />
-      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-foreground" />
-      <span className="sr-only">Toggle theme</span>
-    </button>
+    <div className="flex items-center p-1 rounded-full border border-border bg-surface/80 backdrop-blur-md relative shadow-inner">
+      {themes.map((t) => {
+        const Icon = t.icon
+        const isActive = theme === t.id
+        return (
+          <button
+            key={t.id}
+            onClick={() => setTheme(t.id)}
+            className={`relative flex h-7 w-8 items-center justify-center rounded-full text-xs transition-colors z-10 ${
+              isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+            title={`Theme: ${t.id}`}
+          >
+            {isActive && (
+              <motion.div
+                layoutId="themeToggleIndicator"
+                className="absolute inset-0 bg-primary rounded-full shadow-sm -z-10"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+            <Icon className="h-3.5 w-3.5" />
+          </button>
+        )
+      })}
+    </div>
   )
 }

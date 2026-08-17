@@ -33,8 +33,8 @@ export default function ProjectVisibilityToggle({
       disabled={isPending}
       className={`group relative flex items-center gap-2 overflow-hidden rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-300 ${
         isPrivate 
-          ? 'bg-neutral-800/80 text-neutral-300 hover:bg-neutral-700/80 hover:text-white border border-neutral-700/50' 
-          : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-300 border border-indigo-500/20'
+          ? 'bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/50' 
+          : 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary border border-primary/20'
       }`}
     >
       {isPending ? (
@@ -48,7 +48,7 @@ export default function ProjectVisibilityToggle({
       
       {/* Interactive hover glow */}
       <div className={`absolute inset-0 z-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 ${
-        isPrivate ? 'bg-gradient-to-r from-neutral-700/50 to-neutral-600/50' : 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20'
+        isPrivate ? 'bg-gradient-to-r from-muted to-muted/80' : 'bg-gradient-to-r from-primary/20 to-primary/10'
       }`} />
     </button>
   )

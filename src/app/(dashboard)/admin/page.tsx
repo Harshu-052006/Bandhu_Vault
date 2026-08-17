@@ -26,24 +26,24 @@ export default async function AdminPage() {
   return (
     <div className="container mx-auto p-6 max-w-5xl">
       <div className="flex items-center gap-3 mb-8">
-        <HardDrive className="h-8 w-8 text-indigo-500" />
+        <HardDrive className="h-8 w-8 text-primary" />
         <h1 className="text-3xl font-bold">Storage Administration</h1>
       </div>
 
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 mb-8 flex justify-between items-center">
+      <div className="bg-surface border border-border rounded-xl p-6 mb-8 flex justify-between items-center">
         <div>
-          <h2 className="text-lg font-semibold text-neutral-300">Total Storage Used</h2>
-          <p className="text-sm text-neutral-500">Across all projects</p>
+          <h2 className="text-lg font-semibold text-foreground">Total Storage Used</h2>
+          <p className="text-sm text-muted-foreground">Across all projects</p>
         </div>
-        <div className="text-3xl font-mono font-bold text-indigo-400">
-          {gbUsed} <span className="text-lg text-neutral-500">/ 10 GB</span>
+        <div className="text-3xl font-mono font-bold text-primary">
+          {gbUsed} <span className="text-lg text-muted-foreground">/ 10 GB</span>
         </div>
       </div>
 
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-neutral-950 text-neutral-400 uppercase">
+            <thead className="bg-muted text-muted-foreground uppercase">
               <tr>
                 <th className="px-6 py-4 font-medium">File Name</th>
                 <th className="px-6 py-4 font-medium">Project</th>
@@ -51,16 +51,16 @@ export default async function AdminPage() {
                 <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-800">
+            <tbody className="divide-y divide-border">
               {files.map((file) => (
-                <tr key={file.id} className="hover:bg-neutral-800/50 transition-colors">
+                <tr key={file.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-6 py-4 font-medium truncate max-w-[300px]" title={file.filename}>
                     {file.filename}
                   </td>
-                  <td className="px-6 py-4 text-neutral-400">
+                  <td className="px-6 py-4 text-muted-foreground">
                     {file.project?.name || 'Unknown'}
                   </td>
-                  <td className="px-6 py-4 text-neutral-300 font-mono">
+                  <td className="px-6 py-4 text-foreground font-mono">
                     {(file.fileSize / (1024 * 1024)).toFixed(2)} MB
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -68,7 +68,7 @@ export default async function AdminPage() {
                       <input type="hidden" name="fileId" value={file.id} />
                       <button
                         type="submit"
-                        className="p-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-colors inline-flex items-center"
+                        className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg transition-colors inline-flex items-center"
                         title="Delete File"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -79,7 +79,7 @@ export default async function AdminPage() {
               ))}
               {files.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-neutral-500">
+                  <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
                     No files found in the vault.
                   </td>
                 </tr>
