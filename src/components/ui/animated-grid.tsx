@@ -5,10 +5,8 @@ import { useEffect, useState } from "react";
 
 export function AnimatedGrid() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const handleMouseMove = (e: MouseEvent) => {
       setMousePos({ x: e.clientX, y: e.clientY });
     };
@@ -16,8 +14,6 @@ export function AnimatedGrid() {
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
-
-  if (!mounted) return <div className="absolute inset-0 bg-background -z-10" />;
 
   return (
     <div className="fixed inset-0 z-[-1] overflow-hidden bg-background">

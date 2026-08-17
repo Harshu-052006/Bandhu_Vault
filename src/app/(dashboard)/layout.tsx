@@ -48,7 +48,7 @@ async function StorageIndicator() {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/10 w-full" suppressHydrationWarning>
+    <div className="min-h-screen flex flex-col bg-transparent text-foreground selection:bg-primary/10 w-full" suppressHydrationWarning>
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 max-w-7xl" suppressHydrationWarning>
           <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">

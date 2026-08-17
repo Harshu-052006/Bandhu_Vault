@@ -1,11 +1,9 @@
 import Link from "next/link";
 import { ArrowRight, Layers, Shield, Zap, HardDrive } from "lucide-react";
-import { AnimatedGrid } from "@/components/ui/animated-grid";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-transparent text-foreground selection:bg-primary/10 font-sans flex flex-col relative" suppressHydrationWarning>
-      <AnimatedGrid />
       {/* Navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl" suppressHydrationWarning>
         <div className="container mx-auto flex h-16 items-center justify-between px-6" suppressHydrationWarning>
