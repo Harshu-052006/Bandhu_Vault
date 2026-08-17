@@ -6,26 +6,26 @@ export default function LandingPage() {
     <div className="min-h-screen bg-transparent text-foreground selection:bg-primary/10 font-sans flex flex-col relative" suppressHydrationWarning>
       {/* Navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl" suppressHydrationWarning>
-        <div className="container mx-auto flex h-16 items-center justify-between px-6" suppressHydrationWarning>
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6" suppressHydrationWarning>
           <div className="flex items-center gap-2" suppressHydrationWarning>
-            <div className="flex h-10 w-10 items-center justify-center" suppressHydrationWarning>
+            <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center" suppressHydrationWarning>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.png" alt="Bandhu Vault Logo" className="h-full w-full object-contain drop-shadow-sm" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-foreground">
+            <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground whitespace-nowrap hidden min-[380px]:inline-block">
               Bandhu Vault
             </span>
           </div>
-          <div className="flex items-center gap-4" suppressHydrationWarning>
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0" suppressHydrationWarning>
             <Link
               href="/sign-in"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
             >
               Sign In
             </Link>
             <Link
               href="/sign-up"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 sm:px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
             >
               Get Started
             </Link>

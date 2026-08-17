@@ -324,8 +324,10 @@ export default function KanbanBoard({ project, currentUserId, isLeader }: { proj
   )
 
   const renderList = () => (
-    <motion.div key="list" variants={fadeIn} initial="hidden" animate="visible" exit="exit" layout className="mt-6 border border-border rounded-xl overflow-hidden bg-surface">
-      <div className="grid grid-cols-12 gap-4 p-4 border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground">
+    <motion.div key="list" variants={fadeIn} initial="hidden" animate="visible" exit="exit" layout className="mt-6 border border-border rounded-xl bg-surface overflow-hidden">
+      <div className="overflow-x-auto">
+        <div className="min-w-[800px]">
+          <div className="grid grid-cols-12 gap-4 p-4 border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground">
         <div className="col-span-4">Task Name</div>
         <div className="col-span-3">Description</div>
         <div className="col-span-2">Estimation</div>
@@ -434,6 +436,8 @@ export default function KanbanBoard({ project, currentUserId, isLeader }: { proj
           </div>
         )
       })}
+        </div>
+      </div>
     </motion.div>
   )
 
