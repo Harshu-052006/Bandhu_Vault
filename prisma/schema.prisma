@@ -113,6 +113,9 @@ model Task {
   title       String
   description String?  @db.Text
   status      String   @default("PENDING") // PENDING, COMPLETED
+  priority    String   @default("Medium") // Low, Medium, High
+  startDate   DateTime?
+  endDate     DateTime?
   proofText   String?  @db.Text
   proofFileUrl String?
   createdAt   DateTime @default(now())

@@ -14,6 +14,10 @@ export async function createTask(projectId: string, formData: FormData) {
   const description = formData.get('description') as string
   const assigneeId = formData.get('assigneeId') as string
   
+  const priority = (formData.get('priority') as string) || 'Medium'
+  const startDateStr = formData.get('startDate') as string
+  const endDateStr = formData.get('endDate') as string
+  
   if (!title || !assigneeId) throw new Error("Title and Assignee are required")
   
   await prisma.task.create({
@@ -22,7 +26,10 @@ export async function createTask(projectId: string, formData: FormData) {
       description,
       assigneeId,
       projectId,
-      creatorId: userId
+      creatorId: userId,
+      priority,
+      startDate: startDateStr ? new Date(startDateStr) : null,
+      endDate: endDateStr ? new Date(endDateStr) : null,
     }
   })
   

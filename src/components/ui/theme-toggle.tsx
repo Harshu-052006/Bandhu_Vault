@@ -9,6 +9,7 @@ export function ThemeToggle() {
   const [mounted, setMounted] = React.useState(false)
 
   // Avoid hydration mismatch by waiting for mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
   React.useEffect(() => {
     setMounted(true)
   }, [])

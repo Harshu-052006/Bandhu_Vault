@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
-import { Plus, Trash2, Link as LinkIcon, CheckCircle } from 'lucide-react'
+import { Plus, Trash2, Link as LinkIcon, CheckCircle, List, LayoutGrid, ChevronDown, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { createTask, deleteTask, completeTask, updateTaskStatus } from '@/lib/actions/task-actions'
 import { useRouter } from 'next/navigation'
+import { format } from 'date-fns'
 
 const COLUMNS = [
   { id: 'PENDING', title: 'To Do' },
@@ -16,9 +17,15 @@ const COLUMNS = [
 export default function KanbanBoard({ project, currentUserId, isLeader }: { project: any, currentUserId: string, isLeader: boolean }) {
   const router = useRouter()
   const [tasks, setTasks] = useState(project.tasks || [])
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list')
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    'PENDING': true,
+    'IN_PROGRESS': true,
+    'IN_REVIEW': true,
+    'COMPLETED': true
+  })
   
-  // Update local state when project.tasks changes
-  // eslint-disable-next-line
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
   useEffect(() => {
     setTasks(project.tasks || [])
   }, [project.tasks])
@@ -27,6 +34,9 @@ export default function KanbanBoard({ project, currentUserId, isLeader }: { proj
   const [taskTitle, setTaskTitle] = useState('')
   const [taskDesc, setTaskDesc] = useState('')
   const [taskAssignee, setTaskAssignee] = useState('')
+  const [taskPriority, setTaskPriority] = useState('Medium')
+  const [taskStartDate, setTaskStartDate] = useState('')
+  const [taskEndDate, setTaskEndDate] = useState('')
   const [isCreatingTask, setIsCreatingTask] = useState(false)
   
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null)
@@ -35,13 +45,10 @@ export default function KanbanBoard({ project, currentUserId, isLeader }: { proj
 
   const onDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
-
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
     const newStatus = destination.droppableId;
-    
-    // Optimistic update
     const newTasks = [...tasks];
     const taskIndex = newTasks.findIndex(t => t.id === draggableId);
     if (taskIndex > -1) {
@@ -52,202 +59,359 @@ export default function KanbanBoard({ project, currentUserId, isLeader }: { proj
         await updateTaskStatus(draggableId, newStatus);
       } catch (error) {
         console.error(error);
-        alert("Failed to update task status. You might not have permission.");
-        // Revert on error
+        alert("Failed to update task status.");
         router.refresh(); 
       }
     }
   }
 
-  return (
-    <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-foreground flex items-center">
-          <CheckCircle className="h-4 w-4 mr-2 text-primary" />
-          Kanban Board
-        </h3>
-        {isLeader && (
-          <button 
-            onClick={() => setShowTaskForm(!showTaskForm)}
-            className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground transition-all"
-            title="Assign Task"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        )}
+  const toggleGroup = (id: string) => {
+    setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  const renderTaskForm = () => (
+    <div className="mb-6 p-4 rounded-xl bg-muted border border-border space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input 
+          placeholder="Task Name"
+          value={taskTitle}
+          onChange={e => setTaskTitle(e.target.value)}
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+        />
+        <select 
+          value={taskAssignee}
+          onChange={e => setTaskAssignee(e.target.value)}
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+        >
+          <option value="" disabled>Assign to...</option>
+          <option value={project.leaderId}>{project.leader?.name || "Group Leader"}</option>
+          {project.members?.map((m: any) => (
+            <option key={m.userId} value={m.userId}>{m.user?.name || m.user?.email}</option>
+          ))}
+        </select>
       </div>
-
-      {showTaskForm && (
-        <div className="mb-6 p-4 rounded-xl bg-muted border border-border space-y-3">
-          <input 
-            placeholder="Task Title"
-            value={taskTitle}
-            onChange={e => setTaskTitle(e.target.value)}
-            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-          />
-          <textarea 
-            placeholder="Description (optional)"
-            value={taskDesc}
-            onChange={e => setTaskDesc(e.target.value)}
-            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none resize-none"
-            rows={2}
-          />
+      <textarea 
+        placeholder="Description (optional)"
+        value={taskDesc}
+        onChange={e => setTaskDesc(e.target.value)}
+        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none resize-none"
+        rows={2}
+      />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Priority</label>
           <select 
-            value={taskAssignee}
-            onChange={e => setTaskAssignee(e.target.value)}
+            value={taskPriority}
+            onChange={e => setTaskPriority(e.target.value)}
             className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
           >
-            <option value="" disabled>Assign to...</option>
-            <option value={project.leaderId}>{project.leader?.name || "Group Leader"}</option>
-            {project.members?.map((m: any) => (
-              <option key={m.userId} value={m.userId}>{m.user?.name || m.user?.email}</option>
-            ))}
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
           </select>
-          <div className="flex justify-end space-x-2">
-            <button onClick={() => setShowTaskForm(false)} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
-            <button 
-              disabled={!taskTitle || !taskAssignee || isCreatingTask}
-              onClick={async () => {
-                setIsCreatingTask(true)
-                try {
-                  const formData = new FormData()
-                  formData.append('title', taskTitle)
-                  formData.append('description', taskDesc)
-                  formData.append('assigneeId', taskAssignee)
-                  await createTask(project.id, formData)
-                  setTaskTitle('')
-                  setTaskDesc('')
-                  setTaskAssignee('')
-                  setShowTaskForm(false)
-                } catch (e) {
-                  console.error(e)
-                } finally {
-                  setIsCreatingTask(false)
-                }
-              }}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-md text-xs font-medium shadow-sm disabled:opacity-50"
-            >
-              Assign Task
-            </button>
-          </div>
         </div>
-      )}
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Start Date</label>
+          <input 
+            type="date"
+            value={taskStartDate}
+            onChange={e => setTaskStartDate(e.target.value)}
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">End Date</label>
+          <input 
+            type="date"
+            value={taskEndDate}
+            onChange={e => setTaskEndDate(e.target.value)}
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+          />
+        </div>
+      </div>
+      <div className="flex justify-end space-x-2 pt-2 border-t border-border">
+        <button onClick={() => setShowTaskForm(false)} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+        <button 
+          disabled={!taskTitle || !taskAssignee || isCreatingTask}
+          onClick={async () => {
+            setIsCreatingTask(true)
+            try {
+              const formData = new FormData()
+              formData.append('title', taskTitle)
+              formData.append('description', taskDesc)
+              formData.append('assigneeId', taskAssignee)
+              formData.append('priority', taskPriority)
+              if (taskStartDate) formData.append('startDate', taskStartDate)
+              if (taskEndDate) formData.append('endDate', taskEndDate)
+              await createTask(project.id, formData)
+              setTaskTitle('')
+              setTaskDesc('')
+              setTaskAssignee('')
+              setTaskPriority('Medium')
+              setTaskStartDate('')
+              setTaskEndDate('')
+              setShowTaskForm(false)
+            } catch (e) {
+              console.error(e)
+            } finally {
+              setIsCreatingTask(false)
+            }
+          }}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-sm font-medium shadow-sm disabled:opacity-50"
+        >
+          {isCreatingTask ? 'Adding...' : 'Add Task'}
+        </button>
+      </div>
+    </div>
+  )
 
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {COLUMNS.map(col => {
-            const columnTasks = tasks.filter((t: any) => (t.status || 'PENDING') === col.id);
-            return (
-              <div key={col.id} className="flex flex-col bg-muted/30 rounded-xl p-3 min-h-[300px]">
-                <h4 className="text-sm font-semibold text-foreground mb-3 px-1">{col.title} <span className="text-muted-foreground text-xs font-normal">({columnTasks.length})</span></h4>
-                <Droppable droppableId={col.id}>
-                  {(provided) => (
-                    <div 
-                      ref={provided.innerRef} 
-                      {...provided.droppableProps}
-                      className="flex-1 space-y-2"
-                    >
-                      {columnTasks.map((task: any, index: number) => {
-                        const isAssignee = task.assigneeId === currentUserId;
-                        const isCompleted = task.status === 'COMPLETED';
-                        
-                        return (
-                          <Draggable key={task.id} draggableId={task.id} index={index}>
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`p-3 rounded-xl border bg-surface shadow-sm ${isCompleted ? 'opacity-70' : ''}`}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <h4 className={`text-sm font-medium ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                                      {task.title}
-                                    </h4>
-                                    {task.description && (
-                                      <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
-                                    )}
-                                    <div className="flex items-center space-x-2 mt-2">
-                                      <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                                        {task.assignee?.name?.split(' ')[0]}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  
-                                  {isLeader && (
-                                    <button onClick={() => {
-                                      if(confirm("Delete task?")) deleteTask(task.id)
-                                    }} className="text-muted-foreground hover:text-red-500 transition-colors">
-                                      <Trash2 className="h-3 w-3" />
-                                    </button>
-                                  )}
-                                </div>
-
-                                {isCompleted && (task.proofText || task.proofFileUrl) && (
-                                  <div className="mt-3 pt-3 border-t border-border">
-                                    <p className="text-xs text-muted-foreground mb-1">Proof:</p>
-                                    {task.proofText && <p className="text-xs text-foreground italic">&quot;{task.proofText}&quot;</p>}
-                                    {task.proofFileUrl && (
-                                      <a href={task.proofFileUrl} target="_blank" className="inline-flex items-center text-xs text-primary hover:underline mt-1">
-                                        <LinkIcon className="h-3 w-3 mr-1" /> View Attachment
-                                      </a>
-                                    )}
-                                  </div>
-                                )}
-
-                                {!isCompleted && isAssignee && completingTaskId !== task.id && col.id === 'IN_REVIEW' && (
-                                  <button 
-                                    onClick={() => setCompletingTaskId(task.id)}
-                                    className="mt-3 w-full rounded bg-primary/10 hover:bg-primary/20 text-primary py-1.5 text-xs font-medium transition-colors"
-                                  >
-                                    Add Proof
+  const renderKanban = () => (
+    <DragDropContext onDragEnd={onDragEnd}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+        {COLUMNS.map(col => {
+          const columnTasks = tasks.filter((t: any) => (t.status || 'PENDING') === col.id);
+          return (
+            <div key={col.id} className="flex flex-col bg-muted/30 rounded-xl p-3 min-h-[300px]">
+              <h4 className="text-sm font-semibold text-foreground mb-3 px-1">{col.title} <span className="text-muted-foreground text-xs font-normal">({columnTasks.length})</span></h4>
+              <Droppable droppableId={col.id}>
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps} className="flex-1 space-y-2">
+                    {columnTasks.map((task: any, index: number) => {
+                      const isAssignee = task.assigneeId === currentUserId;
+                      const isCompleted = task.status === 'COMPLETED';
+                      return (
+                        <Draggable key={task.id} draggableId={task.id} index={index}>
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={`p-3 rounded-xl border bg-surface shadow-sm ${isCompleted ? 'opacity-70' : ''}`}
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className={`text-sm font-medium ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                  {task.title}
+                                </h4>
+                                {isLeader && (
+                                  <button onClick={() => { if(confirm("Delete task?")) deleteTask(task.id) }} className="text-muted-foreground hover:text-destructive transition-colors">
+                                    <Trash2 className="h-3 w-3" />
                                   </button>
                                 )}
-
-                                {completingTaskId === task.id && (
-                                  <div className="mt-3 pt-3 border-t border-border">
-                                    <input 
-                                      type="text" 
-                                      placeholder="Link to work..." 
-                                      value={proofText}
-                                      onChange={e => setProofText(e.target.value)}
-                                      className="w-full text-xs rounded border border-border bg-surface px-2 py-1.5 text-foreground focus:ring-1 focus:ring-primary focus:outline-none mb-2"
-                                    />
-                                    <div className="flex justify-end space-x-2">
-                                      <button onClick={() => setCompletingTaskId(null)} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
-                                      <button 
-                                        disabled={isCompletingTask}
-                                        onClick={async () => {
-                                          setIsCompletingTask(true)
-                                          const fd = new FormData()
-                                          fd.append('proofText', proofText)
-                                          await completeTask(task.id, fd)
-                                          setCompletingTaskId(null)
-                                          setProofText('')
-                                          setIsCompletingTask(false)
-                                        }}
-                                        className="bg-primary hover:bg-primary/90 text-primary-foreground px-2 py-1 rounded text-xs"
-                                      >
-                                        Submit
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
                               </div>
-                            )}
-                          </Draggable>
-                        )
-                      })}
-                      {provided.placeholder}
+                              {task.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{task.description}</p>}
+                              
+                              <div className="flex items-center justify-between mt-2">
+                                <div className="flex items-center space-x-2">
+                                  <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground" title={task.assignee?.name || 'Assignee'}>
+                                    {task.assignee?.name?.charAt(0).toUpperCase() || 'A'}
+                                  </div>
+                                </div>
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                                  task.priority === 'High' ? 'bg-red-500/10 text-red-500' :
+                                  task.priority === 'Medium' ? 'bg-orange-500/10 text-orange-500' :
+                                  'bg-blue-500/10 text-blue-500'
+                                }`}>
+                                  {task.priority || 'Medium'}
+                                </span>
+                              </div>
+
+                              {isCompleted && (task.proofText || task.proofFileUrl) && (
+                                <div className="mt-3 pt-3 border-t border-border">
+                                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Proof</p>
+                                  {task.proofText && <p className="text-xs text-foreground italic">&quot;{task.proofText}&quot;</p>}
+                                  {task.proofFileUrl && (
+                                    <a href={task.proofFileUrl} target="_blank" className="inline-flex items-center text-xs text-primary hover:underline mt-1">
+                                      <LinkIcon className="h-3 w-3 mr-1" /> View Attachment
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+
+                              {!isCompleted && isAssignee && completingTaskId !== task.id && col.id === 'IN_REVIEW' && (
+                                <button 
+                                  onClick={() => setCompletingTaskId(task.id)}
+                                  className="mt-3 w-full rounded bg-primary/10 hover:bg-primary/20 text-primary py-1.5 text-xs font-medium transition-colors"
+                                >
+                                  Add Proof & Complete
+                                </button>
+                              )}
+
+                              {completingTaskId === task.id && (
+                                <div className="mt-3 pt-3 border-t border-border">
+                                  <input 
+                                    type="text" 
+                                    placeholder="Link to work..." 
+                                    value={proofText}
+                                    onChange={e => setProofText(e.target.value)}
+                                    className="w-full text-xs rounded border border-border bg-surface px-2 py-1.5 text-foreground focus:ring-1 focus:ring-primary focus:outline-none mb-2"
+                                  />
+                                  <div className="flex justify-end space-x-2">
+                                    <button onClick={() => setCompletingTaskId(null)} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+                                    <button 
+                                      disabled={isCompletingTask}
+                                      onClick={async () => {
+                                        setIsCompletingTask(true)
+                                        const fd = new FormData()
+                                        fd.append('proofText', proofText)
+                                        await completeTask(task.id, fd)
+                                        setCompletingTaskId(null)
+                                        setProofText('')
+                                        setIsCompletingTask(false)
+                                      }}
+                                      className="bg-primary hover:bg-primary/90 text-primary-foreground px-2 py-1 rounded text-xs"
+                                    >
+                                      Submit
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Draggable>
+                      )
+                    })}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </div>
+          )
+        })}
+      </div>
+    </DragDropContext>
+  )
+
+  const renderList = () => (
+    <div className="mt-6 border border-border rounded-xl overflow-hidden bg-surface">
+      <div className="grid grid-cols-12 gap-4 p-4 border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground">
+        <div className="col-span-4">Task Name</div>
+        <div className="col-span-3">Description</div>
+        <div className="col-span-2">Estimation</div>
+        <div className="col-span-1 text-center">People</div>
+        <div className="col-span-1 text-center">Priority</div>
+        <div className="col-span-1 text-right">Action</div>
+      </div>
+      
+      {COLUMNS.map(col => {
+        const columnTasks = tasks.filter((t: any) => (t.status || 'PENDING') === col.id);
+        const isExpanded = expandedGroups[col.id];
+        
+        return (
+          <div key={col.id} className="border-b border-border last:border-0">
+            <div 
+              className="flex items-center gap-2 p-3 bg-muted/10 cursor-pointer hover:bg-muted/30 transition-colors"
+              onClick={() => toggleGroup(col.id)}
+            >
+              {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              <span className="font-semibold text-sm text-foreground">{col.title}</span>
+              <span className="bg-muted text-muted-foreground text-xs font-medium px-2 py-0.5 rounded-full">{columnTasks.length}</span>
+            </div>
+            
+            {isExpanded && columnTasks.length > 0 && (
+              <div className="divide-y divide-border">
+                {columnTasks.map((task: any) => (
+                  <div key={task.id} className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-muted/5 transition-colors group">
+                    <div className="col-span-4 flex items-center gap-3">
+                      <div className={`h-4 w-4 rounded border flex items-center justify-center ${task.status === 'COMPLETED' ? 'bg-primary border-primary' : 'border-muted-foreground/30 bg-transparent'}`}>
+                        {task.status === 'COMPLETED' && <CheckCircle className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+                      <span className={`text-sm font-medium ${task.status === 'COMPLETED' ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                        {task.title}
+                      </span>
                     </div>
-                  )}
-                </Droppable>
+                    
+                    <div className="col-span-3">
+                      <span className="text-sm text-muted-foreground line-clamp-1">{task.description || '-'}</span>
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <span className="text-xs text-muted-foreground">
+                        {task.startDate ? format(new Date(task.startDate), 'MMM d, yyyy') : '-'} 
+                        {task.endDate ? ` - ${format(new Date(task.endDate), 'MMM d, yyyy')}` : ''}
+                      </span>
+                    </div>
+                    
+                    <div className="col-span-1 flex justify-center">
+                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-medium text-primary border border-primary/20" title={task.assignee?.name || 'Assignee'}>
+                        {task.assignee?.name?.charAt(0).toUpperCase() || 'A'}
+                      </div>
+                    </div>
+                    
+                    <div className="col-span-1 flex justify-center">
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${
+                        task.priority === 'High' ? 'bg-red-500/10 text-red-500' :
+                        task.priority === 'Medium' ? 'bg-orange-500/10 text-orange-500' :
+                        'bg-blue-500/10 text-blue-500'
+                      }`}>
+                        {task.priority || 'Medium'}
+                      </span>
+                    </div>
+                    
+                    <div className="col-span-1 flex justify-end">
+                      {isLeader && (
+                        <button onClick={() => { if(confirm("Delete task?")) deleteTask(task.id) }} className="p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive rounded transition-all">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                      {!isLeader && task.status === 'COMPLETED' && (
+                        <button className="p-1 text-muted-foreground">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )
-          })}
+            )}
+            {isExpanded && columnTasks.length === 0 && (
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                No tasks in this section.
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+        <h2 className="text-2xl font-bold text-foreground">Project Tasks</h2>
+        
+        <div className="flex items-center space-x-4 w-full sm:w-auto">
+          <div className="flex bg-muted p-1 rounded-lg">
+            <button 
+              onClick={() => setViewMode('kanban')}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'kanban' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Kanban
+            </button>
+            <button 
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'list' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <List className="h-4 w-4" />
+              List
+            </button>
+          </div>
+          
+          {isLeader && (
+            <button 
+              onClick={() => setShowTaskForm(!showTaskForm)}
+              className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm shrink-0"
+            >
+              <Plus className="h-4 w-4" />
+              New Task
+            </button>
+          )}
         </div>
-      </DragDropContext>
+      </div>
+
+      {showTaskForm && renderTaskForm()}
+      
+      {viewMode === 'kanban' ? renderKanban() : renderList()}
     </div>
   )
 }
