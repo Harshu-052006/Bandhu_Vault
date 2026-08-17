@@ -444,31 +444,33 @@ export default function KanbanBoard({ project, currentUserId, isLeader }: { proj
           <h2 className="text-2xl font-bold text-foreground">Project Tasks</h2>
           
           <div className="flex items-center space-x-4 w-full sm:w-auto">
-            <div className="flex bg-muted p-1 rounded-lg relative">
-              <button 
-                onClick={() => setViewMode('kanban')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all relative z-10 ${viewMode === 'kanban' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <LayoutGrid className="h-4 w-4" />
-                Kanban
-              </button>
-              <button 
-                onClick={() => setViewMode('list')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all relative z-10 ${viewMode === 'list' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <List className="h-4 w-4" />
-                List
-              </button>
-              <motion.div
-                layout
-                className="absolute inset-y-1 bg-background rounded-md shadow-sm"
-                initial={false}
-                animate={{
-                  left: viewMode === 'kanban' ? '0.25rem' : '50%',
-                  width: 'calc(50% - 0.25rem)'
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              />
+            <div className="flex space-x-1 bg-muted p-1 rounded-lg relative w-fit">
+              {[
+                { id: 'kanban', label: 'Kanban', icon: LayoutGrid },
+                { id: 'list', label: 'List', icon: List }
+              ].map((view) => {
+                const Icon = view.icon
+                const isActive = viewMode === view.id
+                return (
+                  <button
+                    key={view.id}
+                    onClick={() => setViewMode(view.id as 'kanban' | 'list')}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all relative z-10 ${
+                      isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {view.label}
+                    {isActive && (
+                      <motion.div
+                        layoutId="kanbanViewToggle"
+                        className="absolute inset-0 bg-background rounded-md shadow-sm -z-10"
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                  </button>
+                )
+              })}
             </div>
             
             {isLeader && (
