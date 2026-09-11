@@ -1,9 +1,16 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
-const isPublicRoute = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)', '/api/webhook(.*)', '/manifest.webmanifest'])
+const isPublicRoute = createRouteMatcher(['/', '/cinematic(.*)', '/sign-in(.*)', '/sign-up(.*)', '/api/webhook(.*)', '/manifest.webmanifest'])
+
+const isCinematicRoute = createRouteMatcher(['/cinematic(.*)'])
 
 export default clerkMiddleware(async (auth, request) => {
+  // Short-circuit: no Clerk auth work on the public cinematic marketing route
+  if (isCinematicRoute(request)) {
+    return NextResponse.next()
+  }
+
   const { userId } = await auth()
 
   if (userId && request.nextUrl.pathname === '/') {

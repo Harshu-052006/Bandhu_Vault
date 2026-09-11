@@ -96,3 +96,5 @@ body {
 }
 div.cl-internal-b3al4t { display: none !important; }
 div.cl-internal-1dauvpw { display: none !important; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
