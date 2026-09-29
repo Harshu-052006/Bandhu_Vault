@@ -6,7 +6,14 @@ import { ensureUser } from './user-actions'
 
 export async function getProjects() {
   const userId = await ensureUser()
+  const user = await prisma.user.findUnique({ where: { id: userId } })
   
+  if (user?.isAdmin) {
+    return prisma.project.findMany({
+      orderBy: { createdAt: 'desc' }
+    })
+  }
+
   return prisma.project.findMany({
     where: {
       OR: [
@@ -43,6 +50,7 @@ export async function createProject(formData: FormData) {
 
 export async function getProject(projectId: string) {
   const userId = await ensureUser()
+  const user = await prisma.user.findUnique({ where: { id: userId } })
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -73,7 +81,7 @@ export async function getProject(projectId: string) {
   
   if (!project) return null
   
-  if (project.isPrivate && project.leaderId !== userId && !project.members.some(m => m.userId === userId)) {
+  if (project.isPrivate && project.leaderId !== userId && !project.members.some(m => m.userId === userId) && !user?.isAdmin) {
     throw new Error("Unauthorized to access this project")
   }
   
@@ -122,6 +130,38 @@ export async function postComment(updateId: string, formData: FormData) {
   })
 
   revalidatePath('/')
+}
+
+export async function editUpdate(updateId: string, title: string, content: string) {
+  const userId = await ensureUser()
+  const update = await prisma.projectUpdate.findUnique({ where: { id: updateId }, include: { project: true } })
+  if (!update) throw new Error("Update not found")
+  if (update.authorId !== userId && update.project.leaderId !== userId) {
+    // Check if co-leader
+    const member = await prisma.projectMember.findUnique({ where: { projectId_userId: { projectId: update.projectId, userId } } })
+    if (member?.role !== 'LEADER') {
+      throw new Error("Unauthorized to edit this update")
+    }
+  }
+  await prisma.projectUpdate.update({
+    where: { id: updateId },
+    data: { title, content }
+  })
+  revalidatePath(`/projects/${update.projectId}`)
+}
+
+export async function editComment(commentId: string, text: string) {
+  const userId = await ensureUser()
+  const comment = await prisma.comment.findUnique({ where: { id: commentId }, include: { update: true } })
+  if (!comment) throw new Error("Comment not found")
+  if (comment.authorId !== userId) {
+    throw new Error("Unauthorized to edit this comment")
+  }
+  await prisma.comment.update({
+    where: { id: commentId },
+    data: { text }
+  })
+  revalidatePath(`/projects/${comment.update.projectId}`)
 }
 
 export async function updateProjectDescription(projectId: string, description: string) {

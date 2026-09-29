@@ -7,14 +7,16 @@ import MediaPlayer from '@/components/features/media-player'
 import KanbanBoard from '@/components/features/kanban-board'
 import { postUpdate, updateProjectDescription, deleteProject } from '@/lib/actions/project-actions'
 import { deleteFile } from '@/lib/actions/file-actions'
-import { addProjectMember, removeProjectMember } from '@/lib/actions/member-actions'
+import { removeProjectMember, promoteToLeader } from '@/lib/actions/member-actions'
+import { inviteMember } from '@/lib/actions/invite-actions'
 import { createTask, completeTask, deleteTask } from '@/lib/actions/task-actions'
 import { useRouter } from 'next/navigation'
 import { Paperclip, Send, Plus, X, Edit2, Check, Trash2, Users, CheckCircle, Link as LinkIcon, UserMinus, LayoutDashboard } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 
 export default function ProjectFeedClient({ project, currentUserId }: { project: any, currentUserId: string }) {
-  const isLeader = project.leaderId === currentUserId
+  const isLeader = project.leaderId === currentUserId || project.members?.some((m: any) => m.userId === currentUserId && m.role === 'LEADER')
 
   const [showUpload, setShowUpload] = useState(false)
   const [showProjectFileUpload, setShowProjectFileUpload] = useState(false)
@@ -124,7 +126,7 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
 
           {showPostUpdateForm && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-              <div className="w-full max-w-2xl rounded-2xl border border-border bg-surface p-6 shadow-2xl relative">
+              <div className="w-full max-w-2xl rounded-2xl border border-border bg-surface p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
                 <button 
                   onClick={() => setShowPostUpdateForm(false)}
                   className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
@@ -301,18 +303,40 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
                         </div>
                       )}
                       <span className="text-sm text-muted-foreground">{member.user?.name || member.user?.email}</span>
+                      {member.role === 'LEADER' && (
+                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">Co-Leader</span>
+                      )}
                     </div>
-                    {isLeader && (
-                      <button 
-                        onClick={async () => {
-                          if (confirm(`Remove ${member.user?.name} from project?`)) {
-                            await removeProjectMember(project.id, member.userId)
-                          }
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-                      >
-                        <UserMinus className="h-4 w-4" />
-                      </button>
+                    {isLeader && member.userId !== currentUserId && (
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {member.role !== 'LEADER' && (
+                          <button 
+                            onClick={async () => {
+                              if (confirm(`Promote ${member.user?.name || member.user?.email} to Co-Leader?`)) {
+                                try {
+                                  await promoteToLeader(project.id, member.userId)
+                                } catch(e) {
+                                  alert("Failed to promote user")
+                                }
+                              }
+                            }}
+                            className="text-[10px] border border-primary/20 text-primary hover:bg-primary/10 px-2 py-0.5 rounded transition-colors"
+                          >
+                            Make Leader
+                          </button>
+                        )}
+                        <button 
+                          onClick={async () => {
+                            if (confirm(`Remove ${member.user?.name || member.user?.email} from project?`)) {
+                              await removeProjectMember(project.id, member.userId)
+                            }
+                          }}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                          title="Remove Member"
+                        >
+                          <UserMinus className="h-4 w-4" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -322,10 +346,11 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
                 <form action={async (formData) => {
                   setIsInviting(true)
                   try {
-                    await addProjectMember(project.id, formData)
+                    await inviteMember(project.id, formData)
                     setInviteEmail('')
+                    toast.success("Invitation sent successfully!")
                   } catch (e: any) {
-                    alert(e.message || "Failed to add member")
+                    toast.error(e.message || "Failed to invite member")
                   } finally {
                     setIsInviting(false)
                   }
@@ -344,7 +369,7 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
                     disabled={isInviting || !inviteEmail}
                     className="bg-muted text-foreground hover:bg-muted-foreground/10 px-3 py-1.5 rounded-md text-sm transition-colors disabled:opacity-50"
                   >
-                    {isInviting ? '...' : 'Add'}
+                    {isInviting ? '...' : 'Invite'}
                   </button>
                 </form>
               )}

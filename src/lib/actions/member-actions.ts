@@ -8,8 +8,12 @@ export async function addProjectMember(projectId: string, formData: FormData) {
   const userId = await ensureUser()
   const email = formData.get('email') as string
   
-  const project = await prisma.project.findUnique({ where: { id: projectId } })
-  if (project?.leaderId !== userId) throw new Error("Only leader can add members")
+  const project = await prisma.project.findUnique({ 
+    where: { id: projectId },
+    include: { members: { where: { userId } } }
+  })
+  const isLeader = project?.leaderId === userId || (project?.members[0]?.role === 'LEADER')
+  if (!isLeader) throw new Error("Only leader can add members")
     
   const userToAdd = await prisma.user.findFirst({ where: { email } })
   if (!userToAdd) throw new Error("User with this email not found in the system. They must log in at least once.")
@@ -34,8 +38,12 @@ export async function addProjectMember(projectId: string, formData: FormData) {
 export async function removeProjectMember(projectId: string, memberId: string) {
   const userId = await ensureUser()
   
-  const project = await prisma.project.findUnique({ where: { id: projectId } })
-  if (project?.leaderId !== userId) throw new Error("Only leader can remove members")
+  const project = await prisma.project.findUnique({ 
+    where: { id: projectId },
+    include: { members: { where: { userId } } }
+  })
+  const isLeader = project?.leaderId === userId || (project?.members[0]?.role === 'LEADER')
+  if (!isLeader) throw new Error("Only leader can remove members")
     
   try {
     await prisma.projectMember.delete({
@@ -49,6 +57,29 @@ export async function removeProjectMember(projectId: string, memberId: string) {
   } catch (e) {
     // ignore
   }
+  
+  revalidatePath(`/projects/${projectId}`)
+}
+
+export async function promoteToLeader(projectId: string, memberId: string) {
+  const userId = await ensureUser()
+  
+  const project = await prisma.project.findUnique({ 
+    where: { id: projectId },
+    include: { members: { where: { userId } } }
+  })
+  const isLeader = project?.leaderId === userId || (project?.members[0]?.role === 'LEADER')
+  if (!isLeader) throw new Error("Only leader can promote members")
+    
+  await prisma.projectMember.update({
+    where: {
+      projectId_userId: {
+        projectId,
+        userId: memberId
+      }
+    },
+    data: { role: 'LEADER' }
+  })
   
   revalidatePath(`/projects/${projectId}`)
 }

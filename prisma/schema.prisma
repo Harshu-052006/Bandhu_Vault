@@ -11,6 +11,7 @@ model User {
   email     String   @unique
   name      String?
   avatarUrl String?
+  isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
 
   updates       ProjectUpdate[]
@@ -20,6 +21,8 @@ model User {
   memberships   ProjectMember[]
   assignedTasks Task[]          @relation("TaskAssignee")
   createdTasks  Task[]          @relation("TaskCreator")
+  invitations   ProjectInvitation[]
+
 }
 
 model Project {
@@ -37,6 +40,7 @@ model Project {
   members ProjectMember[]
   tasks   Task[]
   leader  User?          @relation("ProjectLeader", fields: [leaderId], references: [id])
+  invitations ProjectInvitation[]
 
   @@index([createdAt])
 }
@@ -98,6 +102,7 @@ model Comment {
 model ProjectMember {
   projectId String
   userId    String
+  role      String   @default("MEMBER") // "MEMBER" or "LEADER"
   createdAt DateTime @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -131,5 +136,19 @@ model Task {
 
   @@index([projectId])
   @@index([assigneeId])
+}
+
+model ProjectInvitation {
+  id        String   @id @default(cuid())
+  email     String
+  projectId String
+  inviterId String
+  status    String   @default("PENDING") // PENDING, ACCEPTED, DECLINED
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inviter User    @relation(fields: [inviterId], references: [id])
+  
+  @@unique([email, projectId])
 }
 

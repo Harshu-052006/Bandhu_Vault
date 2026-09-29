@@ -4,6 +4,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { AnimatedGridWrapper } from "@/components/ui/animated-grid-wrapper";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -33,6 +34,7 @@ export default function RootLayout({
           >
             <AnimatedGridWrapper />
             {children}
+            <Toaster theme="system" richColors />
           </ThemeProvider>
         </body>
       </html>
