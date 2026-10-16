@@ -97,57 +97,118 @@ function getFromAddress(): string {
 }
 
 /**
+ * Validates a host string and enforces valid port numbers (1 - 65535).
+ * Rejects ports outside the valid URL port range.
+ */
+function parseAndValidateHost(rawHost: string): { host: string; hostname: string } | null {
+  const match = rawHost.match(/^([a-zA-Z0-9.-]+)(?::([0-9]+))?$/)
+  if (!match) return null
+
+  const hostname = match[1].toLowerCase()
+  const portStr = match[2]
+
+  if (portStr !== undefined) {
+    const port = Number(portStr)
+    // Reject ports outside the URL port range (1 - 65535)
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      return null
+    }
+    return { host: `${hostname}:${port}`, hostname }
+  }
+
+  return { host: hostname, hostname }
+}
+
+/**
  * Resolves the public application base URL safely.
- * - Prioritizes configured environment variables (NEXT_PUBLIC_APP_URL, APP_URL, VERCEL_PROJECT_PRODUCTION_URL).
- * - Strictly validates forwarded protocol (accepts only 'http' or 'https' to prevent protocol smuggling).
- * - Enforces strict hostname and optional allowlist validation to prevent Host Header Injection.
+ * 1. Tries each configured environment URL before falling back to request headers.
+ * 2. Requires an allowed host before trusting any request headers.
+ * 3. Strictly validates protocols ('http' or 'https') and rejects ports outside 1 - 65535.
  */
 async function getBaseAppUrl(): Promise<string> {
-  const envUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL
-  if (envUrl && !envUrl.includes('localhost')) {
+  const configuredCandidates = [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.APP_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+  ].filter((url): url is string => Boolean(url && url.trim()))
+
+  // Build the set of allowed hostnames from configured URLs, environment variables, and dev defaults
+  const allowedHostnames = new Set<string>()
+
+  if (process.env.ALLOWED_HOSTS) {
+    for (const h of process.env.ALLOWED_HOSTS.split(',')) {
+      const trimmed = h.trim().toLowerCase()
+      if (trimmed) allowedHostnames.add(trimmed)
+    }
+  }
+
+  // Always allow localhost in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    allowedHostnames.add('localhost')
+    allowedHostnames.add('127.0.0.1')
+    allowedHostnames.add('::1')
+  }
+
+  // 1. Try each configured URL in order
+  for (const candidate of configuredCandidates) {
     try {
-      const parsed = new URL(envUrl)
+      const candidateWithProto = candidate.startsWith('http://') || candidate.startsWith('https://')
+        ? candidate
+        : `https://${candidate}`
+      const parsed = new URL(candidateWithProto)
+
       if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-        return `${parsed.protocol}//${parsed.host}`
+        const validated = parseAndValidateHost(parsed.host)
+        if (validated) {
+          allowedHostnames.add(validated.hostname)
+          // In production, prioritize public non-localhost domains over localhost fallback
+          if (process.env.NODE_ENV !== 'production' || (validated.hostname !== 'localhost' && validated.hostname !== '127.0.0.1')) {
+            return `${parsed.protocol}//${validated.host}`
+          }
+        }
       }
     } catch {
-      // Fall through if malformed
+      // Try next configured URL
+      continue
     }
   }
 
-  // Check Vercel production deployment URL if present
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/\/+$/, '')}`
-  }
+  // 2. Only check request headers if an allowed host set exists to validate against
+  if (allowedHostnames.size > 0) {
+    try {
+      const headerStore = await headers()
+      const rawHost = headerStore.get('x-forwarded-host') || headerStore.get('host')
+      const rawProto = headerStore.get('x-forwarded-proto')?.trim().toLowerCase()
 
-  try {
-    const headerStore = await headers()
-    const rawHost = headerStore.get('x-forwarded-host') || headerStore.get('host')
-    const rawProto = headerStore.get('x-forwarded-proto')?.trim().toLowerCase()
+      // Accept ONLY 'http' or 'https' as protocol
+      const validProto = rawProto === 'https' || rawProto === 'http'
+        ? rawProto
+        : (process.env.NODE_ENV === 'production' ? 'https' : 'http')
 
-    // Accept ONLY 'http' or 'https' as the protocol to prevent protocol injection
-    const validProto = rawProto === 'https' || rawProto === 'http'
-      ? rawProto
-      : (process.env.NODE_ENV === 'production' ? 'https' : 'http')
-
-    // Validate host strictly to prevent host header injection (letters, digits, dots, dashes, optional port)
-    if (rawHost && /^[a-zA-Z0-9.-]+(?::[0-9]{1,5})?$/.test(rawHost)) {
-      const allowedHosts = process.env.ALLOWED_HOSTS
-        ? process.env.ALLOWED_HOSTS.split(',').map(h => h.trim().toLowerCase())
-        : null
-
-      const hostOnly = rawHost.split(':')[0].toLowerCase()
-      const isLocal = hostOnly === 'localhost' || hostOnly === '127.0.0.1' || hostOnly === '::1'
-
-      if (!allowedHosts || allowedHosts.includes(hostOnly) || isLocal) {
-        return `${validProto}://${rawHost}`.replace(/\/+$/, '')
+      if (rawHost) {
+        const validated = parseAndValidateHost(rawHost)
+        // Require the host to be in the allowed hosts list before trusting headers
+        if (validated && allowedHostnames.has(validated.hostname)) {
+          return `${validProto}://${validated.host}`
+        }
       }
+    } catch {
+      // Fall through to fallback URL
     }
-  } catch {
-    // Fall back if headers() cannot be accessed
   }
 
-  return (envUrl || 'http://localhost:3000').replace(/\/+$/, '')
+  // 3. Fallback: return the first valid configured URL or localhost:3000
+  if (configuredCandidates.length > 0) {
+    try {
+      const first = configuredCandidates[0]
+      const withProto = first.startsWith('http://') || first.startsWith('https://') ? first : `https://${first}`
+      const parsed = new URL(withProto)
+      return `${parsed.protocol}//${parsed.host}`
+    } catch {}
+  }
+
+  return 'http://localhost:3000'
 }
 
 /**
