@@ -8,10 +8,10 @@ import KanbanBoard from '@/components/features/kanban-board'
 import { postUpdate, updateProjectDescription, deleteProject } from '@/lib/actions/project-actions'
 import { deleteFile } from '@/lib/actions/file-actions'
 import { removeProjectMember, promoteToLeader } from '@/lib/actions/member-actions'
-import { inviteMember } from '@/lib/actions/invite-actions'
+import { inviteMember, resendInvitation, cancelInvitation } from '@/lib/actions/invite-actions'
 import { createTask, completeTask, deleteTask } from '@/lib/actions/task-actions'
 import { useRouter } from 'next/navigation'
-import { Paperclip, Send, Plus, X, Edit2, Check, Trash2, Users, CheckCircle, Link as LinkIcon, UserMinus, LayoutDashboard } from 'lucide-react'
+import { Paperclip, Send, Plus, X, Edit2, Check, Trash2, Users, CheckCircle, Link as LinkIcon, UserMinus, LayoutDashboard, Copy, RotateCw, Clock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 
@@ -32,6 +32,52 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
   // Members state
   const [inviteEmail, setInviteEmail] = useState('')
   const [isInviting, setIsInviting] = useState(false)
+  const [resendingInviteId, setResendingInviteId] = useState<string | null>(null)
+  const [cancelingInviteId, setCancelingInviteId] = useState<string | null>(null)
+
+  const copyInviteLink = async (inviteId: string) => {
+    const url = `${window.location.origin}/invite/${inviteId}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success("Direct invite link copied to clipboard!")
+    } catch {
+      toast.error("Failed to copy link")
+    }
+  }
+
+  const handleResend = async (inviteId: string) => {
+    setResendingInviteId(inviteId)
+    try {
+      const res = await resendInvitation(project.id, inviteId)
+      if (res?.inviteLink) {
+        try {
+          await navigator.clipboard.writeText(res.inviteLink)
+        } catch {}
+      }
+      if (res?.emailSent) {
+        toast.success("Invitation email re-sent successfully!")
+      } else {
+        toast.warning("Could not send email, but invite link copied to clipboard.")
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to resend invitation")
+    } finally {
+      setResendingInviteId(null)
+    }
+  }
+
+  const handleCancelInvite = async (inviteId: string) => {
+    if (!confirm("Are you sure you want to cancel this pending invitation?")) return
+    setCancelingInviteId(inviteId)
+    try {
+      await cancelInvitation(project.id, inviteId)
+      toast.success("Invitation canceled")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel invitation")
+    } finally {
+      setCancelingInviteId(null)
+    }
+  }
 
   // Tabs state
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks'>('overview')
@@ -342,13 +388,78 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
                 ))}
               </div>
 
-              {isLeader && project.isPrivate && (
+              {/* Pending Invitations for Leaders */}
+              {isLeader && project.invitations && project.invitations.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span>Pending Invitations ({project.invitations.length})</span>
+                  </div>
+                  <div className="space-y-2">
+                    {project.invitations.map((inv: any) => (
+                      <div key={inv.id} className="flex items-center justify-between p-2.5 rounded-xl bg-background/60 border border-border text-xs group">
+                        <div className="min-w-0 pr-2">
+                          <div className="font-medium text-foreground truncate">{inv.email}</div>
+                          <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <Clock className="h-3 w-3 inline text-amber-500" />
+                            <span>Invited {new Date(inv.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => copyInviteLink(inv.id)}
+                            className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-md transition-colors"
+                            title="Copy Direct Invite Link"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleResend(inv.id)}
+                            disabled={resendingInviteId === inv.id}
+                            className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-md transition-colors disabled:opacity-50"
+                            title="Resend Email"
+                          >
+                            <RotateCw className={`h-3.5 w-3.5 ${resendingInviteId === inv.id ? 'animate-spin' : ''}`} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCancelInvite(inv.id)}
+                            disabled={cancelingInviteId === inv.id}
+                            className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-md transition-colors disabled:opacity-50"
+                            title="Revoke Invitation"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {isLeader && (
                 <form action={async (formData) => {
                   setIsInviting(true)
                   try {
-                    await inviteMember(project.id, formData)
+                    const res = await inviteMember(project.id, formData)
                     setInviteEmail('')
-                    toast.success("Invitation sent successfully!")
+
+                    if (res?.inviteLink) {
+                      try {
+                        await navigator.clipboard.writeText(res.inviteLink)
+                      } catch {}
+                    }
+
+                    if (res?.emailSent) {
+                      toast.success("Invitation sent & direct link copied to clipboard!", {
+                        description: "If it lands in spam, you can also paste the link directly to your teammate.",
+                      })
+                    } else {
+                      toast.warning("Invitation created! Link copied to clipboard.", {
+                        description: "Email could not be delivered directly. Please share the copied invite link with your teammate.",
+                      })
+                    }
                   } catch (e: any) {
                     toast.error(e.message || "Failed to invite member")
                   } finally {
@@ -367,7 +478,7 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
                   <button 
                     type="submit"
                     disabled={isInviting || !inviteEmail}
-                    className="bg-muted text-foreground hover:bg-muted-foreground/10 px-3 py-1.5 rounded-md text-sm transition-colors disabled:opacity-50"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
                   >
                     {isInviting ? '...' : 'Invite'}
                   </button>

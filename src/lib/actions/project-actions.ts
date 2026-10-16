@@ -75,6 +75,11 @@ export async function getProject(projectId: string) {
       files: {
         where: { updateId: null },
         orderBy: { createdAt: 'desc' }
+      },
+      invitations: {
+        where: { status: 'PENDING' },
+        include: { inviter: true },
+        orderBy: { createdAt: 'desc' }
       }
     }
   })

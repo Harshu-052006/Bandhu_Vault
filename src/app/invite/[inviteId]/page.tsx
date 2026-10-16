@@ -5,12 +5,15 @@ import { acceptInvitation } from '@/lib/actions/invite-actions'
 import { CheckCircle, XCircle } from 'lucide-react'
 import Link from 'next/link'
 
-export default async function AcceptInvitePage({ params }: { params: { inviteId: string } }) {
+export default async function AcceptInvitePage({ params }: { params: Promise<{ inviteId: string }> | { inviteId: string } }) {
+  const resolvedParams = await Promise.resolve(params)
+  const inviteId = resolvedParams.inviteId
+
   const userId = await ensureUser() // Forces login
   const user = await prisma.user.findUnique({ where: { id: userId } })
   
   const invite = await prisma.projectInvitation.findUnique({
-    where: { id: params.inviteId },
+    where: { id: inviteId },
     include: { project: true, inviter: true }
   })
 
@@ -36,20 +39,22 @@ export default async function AcceptInvitePage({ params }: { params: { inviteId:
     )
   }
 
-  if (user?.email !== invite.email) {
+  const isEmailMatch = user?.email && invite.email && user.email.trim().toLowerCase() === invite.email.trim().toLowerCase()
+
+  if (!isEmailMatch) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
         <XCircle className="h-16 w-16 text-destructive" />
         <h1 className="text-2xl font-bold">Email Mismatch</h1>
         <p className="text-muted-foreground">This invitation was sent to <strong>{invite.email}</strong>, but you are logged in as <strong>{user?.email}</strong>.</p>
-        <p className="text-sm text-muted-foreground">Please log in with the correct account.</p>
+        <p className="text-sm text-muted-foreground">Please log in with the correct account or ask the project leader to send an invitation to your current email.</p>
       </div>
     )
   }
 
   async function handleAccept() {
     'use server'
-    const projectId = await acceptInvitation(params.inviteId)
+    const projectId = await acceptInvitation(inviteId)
     redirect(`/projects/${projectId}`)
   }
 
