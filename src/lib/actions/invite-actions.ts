@@ -2,32 +2,39 @@
 
 import prisma from '@/lib/db'
 import { ensureUser } from './user-actions'
-import nodemailer from 'nodemailer'
+import nodemailer, { type Transporter } from 'nodemailer'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 
-async function getTransporter() {
+// Global transporter cache to prevent connection socket exhaustion and overhead
+let cachedTransporter: Transporter | null = null
+
+async function getTransporter(): Promise<Transporter> {
+  if (cachedTransporter) {
+    return cachedTransporter
+  }
+
   if (process.env.SMTP_HOST && process.env.SMTP_USER) {
     const isGmail = process.env.SMTP_HOST.includes('gmail')
     const port = Number(process.env.SMTP_PORT) || 587
     const secure = process.env.SMTP_SECURE === 'true' || port === 465
 
-    return nodemailer.createTransport({
+    cachedTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port,
       secure,
+      pool: true,
+      maxConnections: 5,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      tls: {
-        rejectUnauthorized: false
-      }
     })
+    return cachedTransporter
   } else {
     console.warn("No SMTP config found. Creating a test account with Ethereal...")
     const testAccount = await nodemailer.createTestAccount()
-    return nodemailer.createTransport({
+    cachedTransporter = nodemailer.createTransport({
       host: "smtp.ethereal.email",
       port: 587,
       secure: false,
@@ -36,12 +43,33 @@ async function getTransporter() {
         pass: testAccount.pass,
       },
     })
+    return cachedTransporter
   }
 }
 
 /**
+ * Escapes HTML entities to prevent stored HTML Injection / XSS in email clients.
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/**
+ * Validates email format according to standard specifications.
+ */
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/
+  return emailRegex.test(email)
+}
+
+/**
  * Ensures a valid RFC 5322 From address format like:
- * "Bandhu Vault" <noreply@bandhuvault.com>
+ * "Bandhu Vault" <officialadmin00101@gmail.com>
  * Prevents spam filter penalties caused by malformed/unbracketed From headers.
  */
 function getFromAddress(): string {
@@ -69,27 +97,26 @@ function getFromAddress(): string {
 }
 
 /**
- * Resolves the public application base URL.
- * Checks request headers first so that deployed environments (Vercel, custom domains)
- * automatically generate links matching the actual domain rather than hardcoded localhost.
+ * Resolves the public application base URL safely.
+ * Prioritizes trusted configured environment variables to protect against Host Header Injection.
  */
 async function getBaseAppUrl(): Promise<string> {
   const envUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL
+  if (envUrl && !envUrl.includes('localhost')) {
+    return envUrl.replace(/\/+$/, '')
+  }
 
   try {
     const headerStore = await headers()
-    const host = headerStore.get('x-forwarded-host') || headerStore.get('host')
-    const proto = headerStore.get('x-forwarded-proto') || (host && !host.includes('localhost') ? 'https' : 'http')
-
-    if (host) {
-      // If NEXT_PUBLIC_APP_URL is explicitly configured to a real domain, use it; otherwise use incoming host
-      if (envUrl && !envUrl.includes('localhost')) {
-        return envUrl.replace(/\/+$/, '')
-      }
-      return `${proto}://${host}`.replace(/\/+$/, '')
+    const rawHost = headerStore.get('x-forwarded-host') || headerStore.get('host')
+    
+    // Validate host format to prevent host header injection (letters, digits, dots, dashes, optional port)
+    if (rawHost && /^[a-zA-Z0-9.:-]+$/.test(rawHost)) {
+      const proto = headerStore.get('x-forwarded-proto') || (rawHost.includes('localhost') ? 'http' : 'https')
+      return `${proto}://${rawHost}`.replace(/\/+$/, '')
     }
   } catch {
-    // Fall back to env or localhost when headers() cannot be accessed
+    // Fall back if headers() cannot be accessed
   }
 
   return (envUrl || 'http://localhost:3000').replace(/\/+$/, '')
@@ -97,6 +124,7 @@ async function getBaseAppUrl(): Promise<string> {
 
 /**
  * Helper to build high-deliverability email content (multipart HTML + Plain text)
+ * with complete HTML entity escaping to eliminate HTML Injection vulnerabilities.
  */
 function buildInviteEmail({
   projectName,
@@ -107,12 +135,18 @@ function buildInviteEmail({
   inviterName: string
   inviteLink: string
 }) {
-  const subject = `You've been invited to join ${projectName} on Bandhu Vault`
+  const cleanProjectName = projectName || 'Bandhu Vault Project'
+  const cleanInviterName = inviterName || 'A team leader'
+  const safeProjectName = escapeHtml(cleanProjectName)
+  const safeInviterName = escapeHtml(cleanInviterName)
+  const safeInviteLink = encodeURI(inviteLink)
+
+  const subject = `You've been invited to join ${cleanProjectName} on Bandhu Vault`
 
   const text = [
     `Hello!`,
     ``,
-    `You have been invited by ${inviterName} to collaborate on the project "${projectName}" on Bandhu Vault.`,
+    `You have been invited by ${cleanInviterName} to collaborate on the project "${cleanProjectName}" on Bandhu Vault.`,
     ``,
     `To accept this invitation and access the project, click the link below or paste it into your browser:`,
     `${inviteLink}`,
@@ -139,7 +173,6 @@ function buildInviteEmail({
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #18181b 0%, #27272a 100%); padding: 36px 32px; text-align: center;">
-              <!-- Self-contained SVG Icon to prevent external image tracker flags in spam filters -->
               <div style="display: inline-block; width: 48px; height: 48px; line-height: 48px; border-radius: 12px; background: rgba(255, 255, 255, 0.12); margin-bottom: 12px; text-align: center;">
                 <span style="font-size: 24px; color: #ffffff;">🔒</span>
               </div>
@@ -155,14 +188,14 @@ function buildInviteEmail({
                 You've received an invitation
               </p>
               <p style="margin: 0 0 24px; font-size: 15px; line-height: 24px; color: #3f3f46;">
-                <strong style="color: #18181b;">${inviterName}</strong> has invited you to collaborate on the project <strong style="color: #18181b;">${projectName}</strong> on Bandhu Vault.
+                <strong style="color: #18181b;">${safeInviterName}</strong> has invited you to collaborate on the project <strong style="color: #18181b;">${safeProjectName}</strong> on Bandhu Vault.
               </p>
 
               <!-- CTA Button -->
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 28px 0;">
                 <tr>
                   <td align="center">
-                    <a href="${inviteLink}" style="display: inline-block; background-color: #18181b; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <a href="${safeInviteLink}" style="display: inline-block; background-color: #18181b; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                       Accept Invitation &rarr;
                     </a>
                   </td>
@@ -172,7 +205,7 @@ function buildInviteEmail({
               <!-- Fallback Direct Link -->
               <div style="background-color: #f4f4f5; border-radius: 8px; padding: 14px 16px; margin: 24px 0; word-break: break-all;">
                 <p style="margin: 0 0 6px; font-size: 12px; color: #71717a; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Or copy and paste this link:</p>
-                <a href="${inviteLink}" style="font-size: 13px; color: #2563eb; text-decoration: underline;">${inviteLink}</a>
+                <a href="${safeInviteLink}" style="font-size: 13px; color: #2563eb; text-decoration: underline;">${safeInviteLink}</a>
               </div>
 
               <p style="margin: 0 0 12px; font-size: 13px; line-height: 20px; color: #71717a;">
@@ -207,8 +240,8 @@ export async function inviteMember(projectId: string, formData: FormData) {
   const rawEmail = formData.get('email') as string
   const email = rawEmail?.trim().toLowerCase()
   
-  if (!email || !email.includes('@')) {
-    throw new Error("A valid email address is required")
+  if (!email || !isValidEmail(email)) {
+    throw new Error("Please enter a valid email address")
   }
 
   const project = await prisma.project.findUnique({ 
@@ -254,7 +287,7 @@ export async function inviteMember(projectId: string, formData: FormData) {
   const appUrl = await getBaseAppUrl()
   const inviteLink = `${appUrl}/invite/${invite.id}`
 
-  // Build email content with both text and HTML for spam avoidance
+  // Build email content with escaped inputs and multipart MIME
   const { subject, text, html } = buildInviteEmail({
     projectName: project.name,
     inviterName: inviter?.name || inviter?.email || 'A team leader',
@@ -313,12 +346,17 @@ export async function resendInvitation(projectId: string, inviteId: string) {
   const isLeader = project.leaderId === userId || (project.members[0]?.role === 'LEADER')
   if (!isLeader) throw new Error("Only leaders can resend invitations")
 
+  // IDOR protection: ensure invitation belongs to this specific projectId
   const invite = await prisma.projectInvitation.findUnique({
     where: { id: inviteId },
     include: { project: true }
   })
-  if (!invite) throw new Error("Invitation not found")
-  if (invite.status !== 'PENDING') throw new Error("Invitation is no longer pending")
+  if (!invite || invite.projectId !== projectId) {
+    throw new Error("Invitation not found for this project")
+  }
+  if (invite.status !== 'PENDING') {
+    throw new Error("Invitation is no longer pending")
+  }
 
   const inviter = await prisma.user.findUnique({ where: { id: userId } })
   const appUrl = await getBaseAppUrl()
@@ -383,6 +421,14 @@ export async function cancelInvitation(projectId: string, inviteId: string) {
   const isLeader = project.leaderId === userId || (project.members[0]?.role === 'LEADER')
   if (!isLeader) throw new Error("Only leaders can cancel invitations")
 
+  // IDOR protection: verify that the invitation belongs to this project before deleting
+  const invite = await prisma.projectInvitation.findUnique({
+    where: { id: inviteId }
+  })
+  if (!invite || invite.projectId !== projectId) {
+    throw new Error("Invitation not found for this project")
+  }
+
   await prisma.projectInvitation.delete({
     where: { id: inviteId }
   })
@@ -402,14 +448,23 @@ export async function acceptInvitation(inviteId: string) {
   if (!invite) throw new Error("Invitation not found")
   if (invite.status !== 'PENDING') throw new Error("Invitation is no longer pending")
   
-  // Case-insensitive email check
-  if (user?.email && invite.email && user.email.trim().toLowerCase() !== invite.email.trim().toLowerCase()) {
-    throw new Error(`This invitation was sent to ${invite.email}, but you are logged in as ${user.email}.`)
+  // Strict non-null case-insensitive email validation
+  if (!user?.email || !invite.email || user.email.trim().toLowerCase() !== invite.email.trim().toLowerCase()) {
+    throw new Error(`This invitation was sent to ${invite.email}, but you are logged in as ${user?.email || 'an unverified account'}.`)
   }
 
-  // Create member and update invite
-  await prisma.$transaction([
-    prisma.projectMember.upsert({
+  // Atomically claim the invitation and add the user to the project (prevents double-acceptance race conditions)
+  await prisma.$transaction(async (tx) => {
+    const updated = await tx.projectInvitation.updateMany({
+      where: { id: inviteId, status: 'PENDING' },
+      data: { status: 'ACCEPTED' }
+    })
+
+    if (updated.count === 0) {
+      throw new Error("Invitation is no longer pending or has already been accepted.")
+    }
+
+    await tx.projectMember.upsert({
       where: {
         projectId_userId: { projectId: invite.projectId, userId }
       },
@@ -418,12 +473,8 @@ export async function acceptInvitation(inviteId: string) {
         projectId: invite.projectId,
         userId: userId
       }
-    }),
-    prisma.projectInvitation.update({
-      where: { id: inviteId },
-      data: { status: 'ACCEPTED' }
     })
-  ])
+  })
 
   return invite.projectId
 }

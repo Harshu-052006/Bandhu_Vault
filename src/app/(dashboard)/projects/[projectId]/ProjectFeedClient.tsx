@@ -59,6 +59,7 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
       } else {
         toast.warning("Could not send email, but invite link copied to clipboard.")
       }
+      router.refresh()
     } catch (err: any) {
       toast.error(err.message || "Failed to resend invitation")
     } finally {
@@ -72,6 +73,7 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
     try {
       await cancelInvitation(project.id, inviteId)
       toast.success("Invitation canceled")
+      router.refresh()
     } catch (err: any) {
       toast.error(err.message || "Failed to cancel invitation")
     } finally {
@@ -460,6 +462,7 @@ export default function ProjectFeedClient({ project, currentUserId }: { project:
                         description: "Email could not be delivered directly. Please share the copied invite link with your teammate.",
                       })
                     }
+                    router.refresh()
                   } catch (e: any) {
                     toast.error(e.message || "Failed to invite member")
                   } finally {
