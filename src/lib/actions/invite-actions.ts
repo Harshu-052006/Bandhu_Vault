@@ -98,22 +98,50 @@ function getFromAddress(): string {
 
 /**
  * Resolves the public application base URL safely.
- * Prioritizes trusted configured environment variables to protect against Host Header Injection.
+ * - Prioritizes configured environment variables (NEXT_PUBLIC_APP_URL, APP_URL, VERCEL_PROJECT_PRODUCTION_URL).
+ * - Strictly validates forwarded protocol (accepts only 'http' or 'https' to prevent protocol smuggling).
+ * - Enforces strict hostname and optional allowlist validation to prevent Host Header Injection.
  */
 async function getBaseAppUrl(): Promise<string> {
   const envUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL
   if (envUrl && !envUrl.includes('localhost')) {
-    return envUrl.replace(/\/+$/, '')
+    try {
+      const parsed = new URL(envUrl)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return `${parsed.protocol}//${parsed.host}`
+      }
+    } catch {
+      // Fall through if malformed
+    }
+  }
+
+  // Check Vercel production deployment URL if present
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/\/+$/, '')}`
   }
 
   try {
     const headerStore = await headers()
     const rawHost = headerStore.get('x-forwarded-host') || headerStore.get('host')
-    
-    // Validate host format to prevent host header injection (letters, digits, dots, dashes, optional port)
-    if (rawHost && /^[a-zA-Z0-9.:-]+$/.test(rawHost)) {
-      const proto = headerStore.get('x-forwarded-proto') || (rawHost.includes('localhost') ? 'http' : 'https')
-      return `${proto}://${rawHost}`.replace(/\/+$/, '')
+    const rawProto = headerStore.get('x-forwarded-proto')?.trim().toLowerCase()
+
+    // Accept ONLY 'http' or 'https' as the protocol to prevent protocol injection
+    const validProto = rawProto === 'https' || rawProto === 'http'
+      ? rawProto
+      : (process.env.NODE_ENV === 'production' ? 'https' : 'http')
+
+    // Validate host strictly to prevent host header injection (letters, digits, dots, dashes, optional port)
+    if (rawHost && /^[a-zA-Z0-9.-]+(?::[0-9]{1,5})?$/.test(rawHost)) {
+      const allowedHosts = process.env.ALLOWED_HOSTS
+        ? process.env.ALLOWED_HOSTS.split(',').map(h => h.trim().toLowerCase())
+        : null
+
+      const hostOnly = rawHost.split(':')[0].toLowerCase()
+      const isLocal = hostOnly === 'localhost' || hostOnly === '127.0.0.1' || hostOnly === '::1'
+
+      if (!allowedHosts || allowedHosts.includes(hostOnly) || isLocal) {
+        return `${validProto}://${rawHost}`.replace(/\/+$/, '')
+      }
     }
   } catch {
     // Fall back if headers() cannot be accessed
